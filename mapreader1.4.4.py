@@ -142,6 +142,61 @@ class TerrariaWorld:
         self.celestialnebulaactive:bool = None
         self.celestialstardustactive:bool = None
         self.apocalypse:bool = None
+        self.partymanual:bool = None
+        self.partygenuine:bool = None
+        self.partycooldown:int = None
+        self.partyingnpcs:list[int] = []
+        self.sandstormhappening:bool = None
+        self.sandstormtimeleft:int = None
+        self.sandstormseverity:float = None
+        self.sandstormintendedseverity:float = None
+        self.savedbartender:bool = None
+        self.downeddd2invasiont1:bool = None
+        self.downeddd2invasiont2:bool = None
+        self.downeddd2invasiont3:bool = None
+        self.mushroombg:int = None
+        self.underworldbg:int = None
+        self.bgtree2:int = None
+        self.bgtree3:int = None
+        self.bgtree4:int = None
+        self.combatbookused:bool = None
+        self.lanternnightcooldown:int = None
+        self.lanternnightgenuine:bool = None
+        self.lanternnightmanual:bool = None
+        self.lanternnightnextnightisgenuine:bool = None
+        self.treetopvariations:list[int] = [0]*13
+        self.forcehalloweenfortoday:bool = None
+        self.forcexmasfortoday:bool = None
+        self.savedoretierscopper:int = None
+        self.savedoretiersiron:int = None
+        self.savedoretierssilver:int = None
+        self.savedoretiersgold:int = None
+        self.boughtcat:bool = None
+        self.boughtdog:bool = None
+        self.boughtbunny:bool = None
+        self.downedempressoflight:bool = None
+        self.downedqueenslime:bool = None
+        self.downeddeerclops:bool = None
+        self.unlockedslimebluespawn:bool = None
+        self.unlockedmerchantspawn:bool = None
+        self.unlockeddemolitionistspawn:bool = None
+        self.unlockedpartygirlspawn:bool = None
+        self.unlockeddyetraderspawn:bool = None
+        self.unlockedtrufflespawn:bool = None
+        self.unlockedarmsdealerspawn:bool = None
+        self.unlockednursespawn:bool = None
+        self.unlockedprincessspawn:bool = None
+        self.combatbookvolumetwowasused:bool = None
+        self.peddlerssatchelwasused:bool = None
+        self.unlockedslimegreenspawn:bool = None
+        self.unlockedslimeoldspawn:bool = None
+        self.unlockedslimepurplespawn:bool = None
+        self.unlockedslimerainbowspawn:bool = None
+        self.unlockedslimeredspawn:bool = None
+        self.unlockedslimeyellowspawn:bool = None
+        self.unlockedslimecopperspawn:bool = None
+        self.fastforwardtimetodusk:bool = None
+        self.moondialcooldown:bool = None
 
     def read_boolean(self, f:io.BufferedReader) -> bool:
         return f.read(1) != b'\x00'
@@ -206,6 +261,8 @@ class TerrariaWorld:
             raise WorldFileFormatException("Unexpected Position: Invalid File Format Section")
         
         self.LoadHeaderFlags(f)
+        if f.tell() != section_ptrs[1]:
+            raise WorldFileFormatException("Unexpected Position: Invalid Header Flags")
 
         f.close()
 
@@ -442,6 +499,132 @@ class TerrariaWorld:
         self.celestialnebulaactive = self.read_boolean(f)
         self.celestialstardustactive = self.read_boolean(f)
         self.apocalypse = self.read_boolean(f)
+
+        if self.version >= 170:
+            self.partymanual = self.read_boolean(f)
+            self.partygenuine = self.read_boolean(f)
+            self.partycooldown = self.read_int32(f)
+            numparty = self.read_int32(f)
+            for _ in range(numparty):
+                self.partyingnpcs.append(self.read_int32(f))
+        
+        if self.version >= 174:
+            self.sandstormhappening = self.read_boolean(f)
+            self.sandstormtimeleft = self.read_int32(f)
+            self.sandstormseverity = self.read_single(f)
+            self.sandstormintendedseverity = self.read_single(f)
+        
+        if self.version >= 178:
+            self.savedbartender = self.read_boolean(f)
+            self.downeddd2invasiont1 = self.read_boolean(f)
+            self.downeddd2invasiont2 = self.read_boolean(f)
+            self.downeddd2invasiont3 = self.read_boolean(f)
+        
+        if self.version > 194:
+            self.mushroombg = self.read_uint8(f)
+        
+        if self.version >= 215:
+            self.underworldbg = self.read_uint8(f)
+        
+        if self.version >= 195:
+            self.bgtree2 = self.read_uint8(f)
+            self.bgtree3 = self.read_uint8(f)
+            self.bgtree4 = self.read_uint8(f)
+        else:
+            self.bgtree2 = self.bgtree
+            self.bgtree3 = self.bgtree
+            self.bgtree4 = self.bgtree
+
+        if self.version >= 204:
+            self.combatbookused = self.read_boolean(f)
+        
+        if self.version >= 207:
+            self.lanternnightcooldown = self.read_int32(f)
+            self.lanternnightgenuine = self.read_boolean(f)
+            self.lanternnightmanual = self.read_boolean(f)
+            self.lanternnightnextnightisgenuine = self.read_boolean(f)
+        
+        if self.version >= 211:
+            numtrees = self.read_int32(f)
+            self.treetopvariations = [0]*max([13, numtrees])
+            for i in range(numtrees):
+                self.treetopvariations[i] = self.read_int32(f)
+        else:
+            self.treetopvariations[0] = self.treestyle0
+            self.treetopvariations[1] = self.treestyle1
+            self.treetopvariations[2] = self.treestyle2
+            self.treetopvariations[3] = self.treestyle3
+            self.treetopvariations[4] = self.bgcorruption
+            self.treetopvariations[5] = self.junglebackstyle
+            self.treetopvariations[6] = self.bgsnow
+            self.treetopvariations[7] = self.bghallow
+            self.treetopvariations[8] = self.bgcrimson
+            self.treetopvariations[9] = self.bgdesert
+            self.treetopvariations[10] = self.bgocean
+            self.treetopvariations[11] = self.mushroombg
+            self.treetopvariations[12] = self.underworldbg
+
+        if self.version >= 212:
+            self.forcehalloweenfortoday = self.read_boolean(f)
+            self.forcexmasfortoday = self.read_boolean(f)
+        
+        if self.version >= 216:
+            self.savedoretierscopper = self.read_int32(f)
+            self.savedoretiersiron = self.read_int32(f)
+            self.savedoretierssilver = self.read_int32(f)
+            self.savedoretiersgold = self.read_int32(f)
+        else:
+            self.savedoretierscopper = -1
+            self.savedoretiersiron = -1
+            self.savedoretierssilver = -1
+            self.savedoretiersgold = -1
+        
+        if self.version >= 217:
+            self.boughtcat = self.read_boolean(f)
+            self.boughdog = self.read_boolean(f)
+            self.boughtbunny = self.read_boolean(f)
+        
+        if self.version >= 223:
+            self.downedempressoflight = self.read_boolean(f)
+            self.downedqueenslime = self.read_boolean(f)
+        
+        if self.version >= 240:
+            self.downeddeerclops = self.read_boolean(f)
+        
+        if self.version >= 250:
+            self.unlockedslimebluespawn = self.read_boolean(f)
+        
+        if self.version >= 251:
+            self.unlockedmerchantspawn = self.read_boolean(f)
+            self.unlockeddemolitionistspawn = self.read_boolean(f)
+            self.unlockedpartygirlspawn = self.read_boolean(f)
+            self.unlockeddyetraderspawn = self.read_boolean(f)
+            self.unlockedtrufflespawn = self.read_boolean(f)
+            self.unlockedarmsdealerspawn = self.read_boolean(f)
+            self.unlockednursespawn = self.read_boolean(f)
+            self.unlockedprincessspawn = self.read_boolean(f)
+        
+        if self.version >= 259:
+            self.combatbookvolumetwowasused = self.read_boolean(f)
+        
+        if self.version >= 260:
+            self.peddlerssatchelwasused = self.read_boolean(f)
+        
+        if self.version >= 261:
+            self.unlockedslimegreenspawn = self.read_boolean(f)
+            self.unlockedslimeoldspawn = self.read_boolean(f)
+            self.unlockedslimepurplespawn = self.read_boolean(f)
+            self.unlockedslimerainbowspawn = self.read_boolean(f)
+            self.unlockedslimeredspawn = self.read_boolean(f)
+            self.unlockedslimeyellowspawn = self.read_boolean(f)
+            self.unlockedslimecopperspawn = self.read_boolean(f)
+        
+        if self.version >= 264:
+            self.fastforwardtimetodusk = self.read_boolean(f)
+            self.moondialcooldown = self.read_uint8(f)
+        
+        return
+        
 
 world = TerrariaWorld()
 world.loadV2()
