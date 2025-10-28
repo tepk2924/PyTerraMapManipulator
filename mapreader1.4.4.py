@@ -2,6 +2,8 @@ import struct
 import io
 import uuid
 import datetime
+import copy
+from tile import Tile
 
 class WorldFileFormatException(Exception):
     pass
@@ -9,11 +11,32 @@ class WorldFileFormatException(Exception):
 class TerrariaWorld:
     #At least making these works for 1.4.4.....
     def __init__(self):
+        self.__brickstyleenum()
+        self.__liquidtypeenum()
         self.version:int = None
         self.ischinese:bool = None
         self.filerevision:int = None
         self.isfavorite:bool = None
         self.tileframeimportant:list[bool] = None
+        self.__HeaderFlags_init()
+        self.tiles:list[list[Tile]] = None
+    
+    def __brickstyleenum(self):
+        self.FULL = 0x0
+        self.HALFBRICK = 0x1
+        self.SLOPETOPRIGHT = 0x2
+        self.SLOPETOPLEFT = 0x3
+        self.SLOPEBOTTOMRIGHT = 0x4
+        self.SLOPEBOTTOMLEFT = 0x5
+
+    def __liquidtypeenum(self):
+        self.NONE = 0x0
+        self.WATER = 0x01
+        self.LAVA = 0x02
+        self.HONEY = 0x03
+        self.SHIMMER = 0x08
+
+    def __HeaderFlags_init(self):
         self.title:str = None
         self.seed:str = None
         self.worldgenversion:int = None
@@ -250,23 +273,27 @@ class TerrariaWorld:
         return f.read(strlen).decode('utf-8')
 
     def loadV2(self):
-        self.__init__()
         f = open(input("Map file path : "), "rb")
         self.version = self.read_uint32(f)
 
-        tileframeimportant, section_ptrs = self.LoadSectionHeader(f)
+        tileframeimportant, section_ptrs = self.__LoadSectionHeader(f)
         self.tileframeimportant = tileframeimportant
 
         if f.tell() != section_ptrs[0]:
             raise WorldFileFormatException("Unexpected Position: Invalid File Format Section")
         
-        self.LoadHeaderFlags(f)
+        self.__LoadHeaderFlags(f)
         if f.tell() != section_ptrs[1]:
             raise WorldFileFormatException("Unexpected Position: Invalid Header Flags")
 
+        self.tiles = self.__LoadTileData(f, self.tileswide, self.tileshigh, self.version, tileframeimportant)
+        if f.tell() != section_ptrs[2]:
+            print("Correcting Position Error")
+            f.seek(section_ptrs[2])
+
         f.close()
 
-    def LoadSectionHeader(self, f:io.BufferedReader):
+    def __LoadSectionHeader(self, f:io.BufferedReader):
         #loading section header
         if self.version >= 140:
             tmp = f.tell()
@@ -282,10 +309,10 @@ class TerrariaWorld:
         for _ in range(sectioncount):
             section_ptrs.append(self.read_int32(f))
         
-        tileframeimportant = self.ReadBitArray(f)
+        tileframeimportant = self.__ReadBitArray(f)
         return tileframeimportant, section_ptrs
     
-    def ReadBitArray(self, f):
+    def __ReadBitArray(self, f:io.BufferedReader):
         #read bit array
         bitarraylength = self.read_int16(f)
         data = 0
@@ -301,7 +328,7 @@ class TerrariaWorld:
                 booleans[idx] = True
         return booleans
     
-    def LoadHeaderFlags(self, f):
+    def __LoadHeaderFlags(self, f:io.BufferedReader):
         self.title = self.read_string(f)
 
         if self.version >= 179:
@@ -624,8 +651,139 @@ class TerrariaWorld:
             self.moondialcooldown = self.read_uint8(f)
         
         return
+    
+    def __LoadTileData(self,
+                       f:io.BufferedReader,
+                       maxX:int,
+                       maxY:int,
+                       version:int,
+                       tileframeimportant:list[bool]):
+        tiles = [[None]*maxY for _ in range(maxX)]
+        total_tiles = maxX*maxY
+        for x in range(maxX):
+            print(f"loading tile {x*maxY}/{total_tiles} done...")
+            y = 0
+            while y < maxY:
+                tile, rle = self.__deserializetiledata(f, tileframeimportant, version)
+                tiles[x][y] = tile
+                while rle > 0:
+                    y += 1
+                    tiles[x][y] = copy.copy(tile)
+                    rle -= 1
+                y += 1
+        return tiles
+
+    def __deserializetiledata(self, f, tileframeimportant, version) -> tuple[Tile, int]:
+        tile = Tile()
+        tile.reset()
+        tiletype = -1
+        header4 = 0
+        header3 = 0
+        header2 = 0
+        header1 = self.read_uint8(f)
+
+        hasheader2 = False
+        hasheader3 = False
+        hasheader4 = False
+
+        if header1 & 0b0000_0001:
+            hasheader2 = True
+            header2 = self.read_uint8(f)
         
+        if hasheader2 and (header2 & 0b0000_0001):
+            hasheader3 = True
+            header3 = self.read_uint8(f)
+        
+        if version >= 269:
+            if hasheader3 and (header3 & 0b0000_0001):
+                hasheader4 = True
+                header4 = self.read_uint8(f)
+        
+        isactive:bool = (header1 & 0b0000_0010) == 0b0000_0010
+
+        if isactive:
+            tile.isactive = isactive
+
+            if not (header1 & 0b0010_0000):
+                tiletype = self.read_uint8(f)
+            else:
+                lowerbyte = self.read_uint8(f)
+                tiletype = self.read_uint8(f)
+                tiletype = (tiletype << 8) | lowerbyte
+            tile.type = tiletype
+
+            if not tileframeimportant[tiletype]:
+                tile.U = 0
+                tile.V = 0
+            else:
+                tile.U = self.read_int16(f)
+                tile.V = self.read_int16(f)
+
+                if tile.type == 144: #reset timers
+                    tile.V = 0
+            
+            if header3 & 0b0000_1000:
+                tile.tilecolor = self.read_uint8(f)
+        
+        if header1 & 0b0000_0100:
+            tile.wall = self.read_uint8(f)
+            if ((header3 & 0b0001_0000) == 0b0001_0000):
+                tile.wallcolor = self.read_uint8(f)
+        
+        liquidtype = (header1 & 0b0001_1000) >> 3
+        if liquidtype != 0:
+            tile.liquidamount = self.read_uint8(f)
+            tile.liquidtype = liquidtype
+
+            if version >= 269 and ((header3 & 0b1000_0000) == 0b1000_0000):
+                tile.liquidtype = self.SHIMMER
+        
+        if header2 > 1:
+            if header2 & 0b0000_0010:
+                tile.wirered = True
+            if header2 & 0b0000_0100:
+                tile.wireblue = True
+            if header2 & 0b0000_1000:
+                tile.wiregreen = True
+        
+            brickstyle = ((header2 & 0b0111_0000) >> 4)
+            #TODO: 아마도 해당 타일의 종류가 경사를 실제로 가지는 지 검사하는 코드(1528번 줄)인 거 같음. 나중에 여유 있을 때 구현하자.
+            tile.brickstyle = brickstyle
+
+        if header3 > 1:
+            if header3 & 0b0000_0010:
+                tile.actuator = True
+            
+            if header3 & 0b0000_0100:
+                tile.inactive = True
+            
+            if header3 & 0b0010_0000:
+                tile.wireyellow = True
+            
+            if version >= 222:
+                if header3 & 0b0100_0000:
+                    tile.wall = (self.read_uint8(f) << 8) | tile.wall
+        
+        if (version >= 269 and header4 > 1):
+            if header4 & 0b_0000_0010:
+                tile.invisibleblock = True
+            if header4 & 0b_0000_0100:
+                tile.invisiblewall = True
+            if header4 & 0b_0000_1000:
+                tile.fullbrightblock = True
+            if header4 & 0b_0001_0000:
+                tile.fullbrightwall = True
+        
+        rlestoragetype = (header1 & 192) >> 6
+        if rlestoragetype == 0:
+            rle = 0
+        elif rlestoragetype == 1:
+            rle = self.read_uint8(f)
+        else:
+            rle = self.read_int16(f)
+        
+        return tile, rle
+
 
 world = TerrariaWorld()
 world.loadV2()
-print(world.__dict__)
