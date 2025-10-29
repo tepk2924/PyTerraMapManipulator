@@ -1,5 +1,6 @@
-import numpy as np
+import io
+import struct
 
-A = np.zeros((5, 5, 3), dtype=np.int32)
-A[2, 2, :] = [5, 5, False]
-print(A)
+with open('aaaaaaaaaaa', 'wb') as f:
+    f.write(struct.pack('<i', 100))
+    print(f.tell())

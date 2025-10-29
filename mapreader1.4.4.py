@@ -255,6 +255,9 @@ class TerrariaWorld:
         self.fastforwardtimetodusk:bool = None
         self.moondialcooldown:bool = None
 
+    def __getsectioncount(self):
+        return 11 if self.version >= 220 else 10
+
     def read_boolean(self, f:io.BufferedReader) -> bool:
         return f.read(1) != b'\x00'
 
@@ -275,18 +278,57 @@ class TerrariaWorld:
     
     def read_uint32(self, f:io.BufferedReader) -> int:
         return struct.unpack('<I', f.read(4))[0]
-
+    
     def read_int64(self, f:io.BufferedReader) -> int:
         return struct.unpack('<q', f.read(8))[0]
     
     def read_uint64(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<Q', f.read(8))[0]    
+        return struct.unpack('<Q', f.read(8))[0]
+
+    # def read_int64(self, f:io.BufferedReader) -> int:
+    #     return struct.unpack('<q', f.read(8))[0]
+    
+    # def read_uint64(self, f:io.BufferedReader) -> int:
+    #     return struct.unpack('<Q', f.read(8))[0]    
 
     def read_single(self, f:io.BufferedReader) -> float:
         return struct.unpack('<f', f.read(4))[0]
 
     def read_double(self, f:io.BufferedReader) -> float:
         return struct.unpack('<d', f.read(8))[0]
+
+    def write_boolean(self, f:io.BufferedWriter, data:bool):
+        f.write(struct.pack('?', data))
+    
+    def write_int8(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<b', data))
+    
+    def write_uint8(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<B', data))
+    
+    def write_int16(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<h', data))
+
+    def write_uint16(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<H', data))
+    
+    def write_int32(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<i', data))
+    
+    def write_uint32(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<I', data))
+    
+    def write_int64(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<q', data))
+    
+    def write_uint64(self, f:io.BufferedWriter, data:int):
+        f.write(struct.pack('<Q', data))
+    
+    def write_single(self, f:io.BufferedWriter, data:float):
+        f.write(struct.pack('<f', data))
+    
+    def write_double(self, f:io.BufferedWriter, data:float):
+        f.write(struct.pack('<d', data))
 
     def read_7bit_encoded_int(self, f):
         result = 0
@@ -302,9 +344,24 @@ class TerrariaWorld:
             shift += 7
         return result
 
+    def write_7bit_encoded_int(self, f, value):
+        while True:
+            b = value & 0x7F
+            value >>= 7
+            if value:
+                f.write(bytes([b | 0x80]))
+            else:
+                f.write(bytes([b]))
+                break
+
     def read_string(self, f) -> str:
         strlen = self.read_7bit_encoded_int(f)
         return f.read(strlen).decode('utf-8')
+    
+    def write_string(self, f, s: str):
+        data = s.encode('utf-8')
+        self.write_7bit_encoded_int(f, len(data))
+        f.write(data)
 
     def loadV2(self):
         with open(input("Map file path : "), "rb") as f:
@@ -374,7 +431,6 @@ class TerrariaWorld:
                     raise WorldFileFormatException("Unexpected Position: Invalid Bestiary Section")
             
             self.__LoadFooter(f)            
-
 
     def __LoadSectionHeader(self, f:io.BufferedReader):
         #loading section header
@@ -557,6 +613,7 @@ class TerrariaWorld:
         self.savedangler = self.read_boolean(f)
 
         if self.version < 101: return
+
         self.anglerquest = self.read_int32(f)
 
         if self.version < 104: return
@@ -580,7 +637,7 @@ class TerrariaWorld:
         
         if self.version < 128: return
 
-        if self.version > 140:
+        if self.version >= 140:
             self.fastforwardtime = self.read_boolean(f)
         
         if self.version < 131: return
@@ -924,15 +981,375 @@ class TerrariaWorld:
         return signs
 
     def __LoadFooter(self, f):
-        if not self.read_boolean(f):
+        boolean_footer = self.read_boolean(f)
+        # print(f"{boolean_footer = }")
+        if not boolean_footer:
             raise WorldFileFormatException("Invalid Boolean Footer")
         
-        if self.read_string(f) != self.title:
+        title_footer = self.read_string(f)
+        # print(f"{title_footer = }")
+        if title_footer != self.title:
             raise WorldFileFormatException("Invalid World Title Footer")
         
-        if self.read_int32(f) != self.worldid:
+        world_id_footer = self.read_int32(f)
+        # print(f"{world_id_footer = }")
+        if world_id_footer != self.worldid:
             raise WorldFileFormatException("Invalid World ID Footer")
 
+    def saveV2(self):
+        save_file_path = input("Saving File Path : ")
+
+        sectionpointers = [None]*self.__getsectioncount()
+
+        with open(save_file_path, "wb") as f:
+            sectionpointers[0] = self.__SaveSectionHeader(f, self.tileframeimportant)
+            sectionpointers[1] = self.__SaveHeaderFlags(f, self.version)
+            #TODO: SectionPointer를 업데이트하는 코드
+
+    def __SaveSectionHeader(self, f:io.BufferedWriter, tileframeimportant) -> int:
+        self.write_uint32(f, self.version)
+
+        if self.version >= 140:
+            if self.ischinese:
+                self.write_string(f, 'xindong')
+            else:
+                self.write_string(f, 'relogic')
+            
+            self.write_uint8(f, 3)
+
+            self.write_uint32(f, self.filerevision)
+
+            worldheaderflags = 0
+            if self.isfavorite:
+                worldheaderflags |= 1
+            self.write_uint64(f, worldheaderflags)
+
+        sectioncount = self.__getsectioncount()
+        self.write_int16(f, sectioncount)
+
+        for _ in range(sectioncount):
+            #일단 0으로 적음. 나중에 수정하는 듯.
+            self.write_int32(f, 0)
+        
+        self.__WriteBitArray(f, tileframeimportant)
+        return f.tell()
+    
+    def __WriteBitArray(self, f, tileframeimportant):
+        self.write_int16(len(tileframeimportant))
+
+        data = 0
+        bitmask = 1
+        for i in range(len(tileframeimportant)):
+            if tileframeimportant[i]:
+                data = data | bitmask
+            if bitmask != 128:
+                bitmask = bitmask << 1
+            else:
+                self.write_uint8(data)
+                data = 0
+                bitmask = 1
+        
+        if bitmask != 1:
+            self.write_uint8(data)
+    
+    def __SaveHeaderFlags(self, f:io.BufferedWriter, version) -> int:
+        self.write_string(self.title)
+
+        if self.version >= 179:
+            if self.version == 179:
+                seed = int(self.seed)
+                self.write_int32(seed)
+            else:
+                seed = int(self.seed)
+                self.write_string(str(seed))
+            self.write_uint64(self.worldgenversion)
+        
+        if self.version >= 181:
+            f.write(self.worldguid.bytes)
+        
+        self.write_int32(f, self.worldid)
+        self.write_int32(f, int(self.leftworld))
+        self.write_int32(f, int(self.rightworld))
+        self.write_int32(f, int(self.topworld))
+        self.write_int32(f, int(self.bottomworld))
+        self.write_int32(f, self.tileshigh)
+        self.write_int32(f, self.tileswide)
+
+        if self.version >= 209:
+            self.write_int32(f, self.gamemode)
+            
+            if self.version >= 222: self.write_boolean(f, self.drunkworld)
+            if self.version >= 227: self.write_boolean(f, self.goodworld)
+            if self.version >= 238: self.write_boolean(f, self.tenthanniversaryworld)
+            if self.version >= 239: self.write_boolean(f, self.dontstarveworld)
+            if self.version >= 241: self.write_boolean(f, self.notthebeesworld)
+            if self.version >= 249: self.write_boolean(f, self.remixworld)
+            if self.version >= 266: self.write_boolean(f, self.notrapworld)
+            if self.version >= 266: self.write_boolean(f, self.zenithworld)
+        elif self.version == 208:
+            self.write_boolean(f, self.gamemode == 2)
+        elif self.version == 112:
+            self.write_boolean(f, self.gamemode == 1)
+        else:
+            pass
+
+        if self.version >= 141:
+            self.write_int64(f, self.creationtime)
+        
+        self.write_uint8(f, self.moontype)
+        self.write_int32(f, self.treeX0)
+        self.write_int32(f, self.treeX1)
+        self.write_int32(f, self.treeX2)
+        self.write_int32(f, self.treestyle0)
+        self.write_int32(f, self.treestyle1)
+        self.write_int32(f, self.treestyle2)
+        self.write_int32(f, self.treestyle3)
+        self.write_int32(f, self.cavebackX0)
+        self.write_int32(f, self.cavebackX1)
+        self.write_int32(f, self.cavebackX2)
+        self.write_int32(f, self.cavebackstyle0)
+        self.write_int32(f, self.cavebackstyle1)
+        self.write_int32(f, self.cavebackstyle2)
+        self.write_int32(f, self.cavebackstyle3)
+        self.write_int32(f, self.icebackstyle)
+        self.write_int32(f, self.junglebackstyle)
+        self.write_int32(f, self.hellbackstyle)
+
+        self.write_int32(f, self.spawnX)
+        self.write_int32(f, self.spawnY)
+        self.write_double(f, self.groundlevel)
+        self.write_double(f, self.rocklevel)
+        self.write_double(f, self.time)
+        self.write_boolean(f, self.daytime)
+        self.write_int32(f, self.moonphase)
+        self.write_boolean(f, self.bloodmoon)
+        self.write_boolean(f, self.iseclipse)
+        self.write_int32(f, self.dungeonX)
+        self.write_int32(f, self.dungeonY)
+
+        self.write_boolean(f, self.iscrimson)
+
+        self.write_boolean(f, self.downedboss1eyeofcthulhu)
+        self.write_boolean(f, self.downedboss2eaterofworlds)
+        self.write_boolean(f, self.downedboss3skeletron)
+        self.write_boolean(f, self.downedqueenbee)
+        self.write_boolean(f, self.downedmechboss1thedestroyer)
+        self.write_boolean(f, self.downedmechboss2thetwins)
+        self.write_boolean(f, self.downedmechboss3skeletronprime)
+        self.write_boolean(f, self.downedmechbossany)
+        self.write_boolean(f, self.downedplantboss)
+        self.write_boolean(f, self.downedgolemboss)
+
+        if self.version >= 118: self.write_boolean(f, self.downedslimekingboss)
+
+        self.write_boolean(f, self.savedgoblin)
+        self.write_boolean(f, self.savedwizard)
+        self.write_boolean(f, self.savedmech)
+        self.write_boolean(f, self.downedgoblins)
+        self.write_boolean(f, self.downedclown)
+        self.write_boolean(f, self.downedfrost)
+        self.write_boolean(f, self.downedpirates)
+
+        self.write_boolean(f, self.shadoworbsmashed)
+        self.write_boolean(f, self.spawnmeteor)
+        self.write_uint8(f, self.shadoworbcount)
+        self.write_int32(f, self.altarcount)
+        self.write_boolean(f, self.hardmode)
+        if self.version >= 257: self.write_boolean(f, self.partyofdoom)
+        self.write_int32(f, self.invasiondelay)
+        self.write_int32(f, self.invasionsize)
+        self.write_int32(f, self.invasiontype)
+        self.write_double(f, self.invasionX)
+        if self.version >= 118: self.write_double(f, self.slimeraintime)
+        if self.version >= 113: self.write_uint8(f, self.sundialcooldown)
+
+        self.write_boolean(f, self.israining)
+        self.write_int32(f, self.tempraintime)
+        self.write_single(f, self.tempmaxrain)
+        self.write_int32(f, self.savedoretierscobalt)
+        self.write_int32(f, self.savedoretiersmythril)
+        self.write_int32(f, self.savedoretiersadamantitie)
+        self.write_uint8(f, self.bgtree)
+        self.write_uint8(f, self.bgcorruption)
+        self.write_uint8(f, self.bgjungle)
+        self.write_uint8(f, self.bgsnow)
+        self.write_uint8(f, self.bghallow)
+        self.write_uint8(f, self.bgcrimson)
+        self.write_uint8(f, self.bgdesert)
+        self.write_uint8(f, self.bgocean)
+        self.write_int32(f, int(self.cloudbgactive))
+        self.write_int16(f, self.numclouds)
+        self.write_single(f, self.windspeedset)
+
+        if self.version < 95: return f.tell()
+
+        self.write_int32(f, len(self.anglers))
+
+        for angler in self.anglers:
+            self.write_string(f, angler)
+        
+        if self.version < 99: return f.tell()
+
+        self.write_boolean(f, self.savedangler)
+
+        if self.version < 101: return f.tell()
+
+        self.write_int32(f, self.anglerquest)
+
+        if self.version < 104: return f.tell()
+
+        self.write_boolean(f, self.savedstylist)
+
+        if self.version >= 129:
+            self.write_boolean(f, self.savedtaxcollector)
+        if self.version >= 201:
+            self.write_boolean(f, self.savedgolfer)
+        if self.version >= 107:
+            self.write_int32(f, self.invasionsizestart)
+        if self.version >= 108:
+            self.write_int32(f, self.cultistdelay)
+        
+        if self.version < 109: return f.tell()
+
+        number_of_mobs = len(self.killedmobs)
+        self.write_int16(f, number_of_mobs)
+        for i in range(number_of_mobs):
+            self.write_int32(f, number_of_mobs[i])
+        
+        if self.version < 128: return f.tell()
+
+        if self.version >= 140:
+            self.write_boolean(f, self.fastforwardtime)
+        
+        if self.version < 131: return f.tell()
+
+        self.write_boolean(f, self.downedfishron)
+
+        if self.version >= 140:
+            self.write_boolean(f, self.downedmartians)
+            self.write_boolean(f, self.downedlunaticcultist)
+            self.write_boolean(f, self.downedmoonlord)
+
+        self.write_boolean(f, self.downedhalloweenking)
+        self.write_boolean(f, self.downedhalloweentree)
+        self.write_boolean(f, self.downedchristmasqueen)
+        self.write_boolean(f, self.downedsanta)
+        self.write_boolean(f, self.downedchristmastree)
+
+        if self.version < 140: return f.tell()
+
+        self.write_boolean(f, self.downedcelestialsolar)
+        self.write_boolean(f, self.downedcelestialvortex)
+        self.write_boolean(f, self.downedcelestialnebula)
+        self.write_boolean(f, self.downedcelestialstardust)
+        self.write_boolean(f, self.celestialsolaractive)
+        self.write_boolean(f, self.celestialvortexactive)
+        self.write_boolean(f, self.celestialnebulaactive)
+        self.write_boolean(f, self.celestialstardustactive)
+        self.write_boolean(f, self.apocalypse)
+
+        if self.version >= 170:
+            self.write_boolean(f, self.partymanual)
+            self.write_boolean(f, self.partygenuine)
+            self.write_int32(f, self.partycooldown)
+            numparty = len(self.partyingnpcs)
+            self.write_int32(f, numparty)
+            for i in range(numparty):
+                self.write_int32(f, numparty[i])
+        
+        if self.version >= 174:
+            self.write_boolean(f, self.sandstormhappening)
+            self.write_int32(f, self.sandstormtimeleft)
+            self.write_single(f, self.sandstormseverity)
+            self.write_single(f, self.sandstormintendedseverity)
+
+        if self.version >= 178:
+            self.write_boolean(f, self.savedbartender)
+            self.write_boolean(f, self.downeddd2invasiont1)
+            self.write_boolean(f, self.downeddd2invasiont2)
+            self.write_boolean(f, self.downeddd2invasiont3)
+
+        if self.version > 194:
+            self.write_uint8(f, self.mushroombg)
+
+        if self.version >= 215:
+            self.write_uint8(f, self.underworldbg)
+        
+        if self.version >= 195:
+            self.write_uint8(f, self.bgtree2)
+            self.write_uint8(f, self.bgtree3)
+            self.write_uint8(f, self.bgtree4)
+
+        if self.version >= 204:
+            self.write_boolean(f, self.combatbookused)
+        
+        if self.version >= 207:
+            self.write_int32(f, self.lanternnightcooldown)
+            self.write_boolean(f, self.lanternnightgenuine)
+            self.write_boolean(f, self.lanternnightmanual)
+            self.write_boolean(f, self.lanternnightnextnightisgenuine)
+
+        if self.version >= 211:
+            numtrees = len(self.treetopvariations)
+            self.write_int32(f, numtrees)
+            for i in range(numtrees):
+                self.write_int32(f, self.treetopvariations[i])
+
+        if self.version >= 212:
+            self.write_boolean(f, self.forcehalloweenfortoday)
+            self.write_boolean(f, self.forcexmasfortoday)
+
+        if self.version >= 216:
+            self.write_int32(f, self.savedoretierscopper)
+            self.write_int32(f, self.savedoretiersiron)
+            self.write_int32(f, self.savedoretierssilver)
+            self.write_int32(f, self.savedoretiersgold)
+        
+        if self.version >= 217:
+            self.write_boolean(f, self.boughtcat)
+            self.write_boolean(f, self.boughdog)
+            self.write_boolean(f, self.boughtbunny)
+
+        if self.version >= 223:
+            self.write_boolean(f, self.downedempressoflight)
+            self.write_boolean(f, self.downedqueenslime)
+        
+        if self.version >= 240:
+            self.write_boolean(f, self.downeddeerclops)
+        
+        if self.version >= 250:
+            self.write_boolean(f, self.unlockedslimebluespawn)
+        
+        if self.version >= 251:
+            self.write_boolean(f, self.unlockedmerchantspawn)
+            self.write_boolean(f, self.unlockeddemolitionistspawn)
+            self.write_boolean(f, self.unlockedpartygirlspawn)
+            self.write_boolean(f, self.unlockeddyetraderspawn)
+            self.write_boolean(f, self.unlockedtrufflespawn)
+            self.write_boolean(f, self.unlockedarmsdealerspawn)
+            self.write_boolean(f, self.unlockednursespawn)
+            self.write_boolean(f, self.unlockedprincessspawn)
+        
+        if self.version >= 259:
+            self.write_boolean(f, self.combatbookvolumetwowasused)
+        
+        if self.version >= 260:
+            self.write_boolean(f, self.peddlerssatchelwasused)
+        
+        if self.version >= 261:
+            self.write_boolean(f, self.unlockedslimegreenspawn)
+            self.write_boolean(f, self.unlockedslimeoldspawn)
+            self.write_boolean(f, self.unlockedslimepurplespawn)
+            self.write_boolean(f, self.unlockedslimerainbowspawn)
+            self.write_boolean(f, self.unlockedslimeredspawn)
+            self.write_boolean(f, self.unlockedslimeyellowspawn)
+            self.write_boolean(f, self.unlockedslimecopperspawn)
+        
+        if self.version >= 264:
+            self.write_boolean(f, self.fastforwardtimetodusk)
+            self.write_uint8(f, self.moondialcooldown)
+        
+        return f.tell()
 
 world = TerrariaWorld()
 world.loadV2()
