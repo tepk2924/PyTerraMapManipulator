@@ -3,38 +3,12 @@ import io
 import uuid
 import datetime
 import numpy as np
+from tiles import Tiles
+from chest import Chest, Item
+from sign import Sign
 
 class WorldFileFormatException(Exception):
     pass
-
-class Tiles:
-    '''
-    tileinfos: np.ndarray((maxX, maxY, 20), np.int32)
-    =============================================
-    - bool : 0 - 1, ushort : 0 - 65535, byte : 0 - 255
-    - channel 0 (bool) : actuactor info
-    - channel 1 (0: full, 1: halfbrick, 2: slope TR, 3: slope TL, 4: slope BR, 5: slope BL) : brickstyle
-    - channel 2 (bool) : inactive
-    - channel 3 (bool) : is active
-    - channel 4 (byte) : liquid amount
-    - channel 5 (0: none, 1: water, 2: lava, 3: honey, 8: shimmer) : liquid type
-    - channel 6 (byte) : tule color
-    - channel 7 (ushort) : tile type
-    - channel 8 (int16) : U value
-    - channel 9 (int16) : V value
-    - channel 10 (ushort) : wall type
-    - channel 11 (byte) : wall color
-    - channel 12 (bool) : wire blue
-    - channel 13 (bool) : wire green
-    - channel 14 (bool) : wire red
-    - channel 15 (bool) : wire yellow
-    - channel 16 (bool) : full bright block
-    - chaneel 17 (bool) : full bright wall
-    - channel 18 (bool) : invisible block
-    - channel 19 (bool) : invisible wall
-    '''
-    def __init__(self, maxX, maxY):
-        self.tileinfos = np.zeros((maxX, maxY, 20), np.int32)
 
 class TerrariaWorld:
     #At least making these works for 1.4.4.....
@@ -49,7 +23,16 @@ class TerrariaWorld:
         self.tileframeimportant:list[bool] = None
         self.__HeaderFlags_init()
         self.tiles:Tiles = None
-    
+        self.chests:list[Chest] = None
+        self.signs:list[Sign] = None
+        self.shimmeredtownnpcs:list[int] = None
+        self.NPCMobs_data = None
+        self.tile_entities_data = None
+        self.pressure_plate_data = None
+        self.town_manager_data = None
+        self.bestiary_data = None
+        self.creative_power_data = None
+
     def __brickstyleenum(self):
         self.FULL = 0x0
         self.HALFBRICK = 0x1
@@ -324,25 +307,74 @@ class TerrariaWorld:
         return f.read(strlen).decode('utf-8')
 
     def loadV2(self):
-        f = open(input("Map file path : "), "rb")
-        self.version = self.read_uint32(f)
+        with open(input("Map file path : "), "rb") as f:
+            self.version = self.read_uint32(f)
 
-        tileframeimportant, section_ptrs = self.__LoadSectionHeader(f)
-        self.tileframeimportant = tileframeimportant
+            tileframeimportant, section_ptrs = self.__LoadSectionHeader(f)
+            self.tileframeimportant = tileframeimportant
 
-        if f.tell() != section_ptrs[0]:
-            raise WorldFileFormatException("Unexpected Position: Invalid File Format Section")
-        
-        self.__LoadHeaderFlags(f)
-        if f.tell() != section_ptrs[1]:
-            raise WorldFileFormatException("Unexpected Position: Invalid Header Flags")
+            if f.tell() != section_ptrs[0]:
+                raise WorldFileFormatException("Unexpected Position: Invalid File Format Section")
+            
+            self.__LoadHeaderFlags(f)
+            if f.tell() != section_ptrs[1]:
+                raise WorldFileFormatException("Unexpected Position: Invalid Header Flags")
 
-        self.tiles = self.__LoadTileData(f, self.tileswide, self.tileshigh, self.version, tileframeimportant)
-        if f.tell() != section_ptrs[2]:
-            print("Correcting Position Error")
-            f.seek(section_ptrs[2])
+            self.tiles = self.__LoadTileData(f, self.tileswide, self.tileshigh, self.version, tileframeimportant)
+            if f.tell() != section_ptrs[2]:
+                print("Correcting Position Error")
+                f.seek(section_ptrs[2])
 
-        f.close()
+            self.chests = self.__LoadChestData(f)
+            if f.tell() != section_ptrs[3]:
+                raise WorldFileFormatException("Unexpected Position: Invalid Chest Data")
+            
+            self.signs = self.__LoadSignData(f)
+            #여기 즈음에 sign 데이터의 tile type이 진짜 표지판의 종류인지 검사하는 코드가 원래 있었음
+            if f.tell() != section_ptrs[4]:
+                raise WorldFileFormatException("Unexpected Position: Invalid Sign Data")
+            
+            if self.version >= 140:
+                NPCMobs_data_len = section_ptrs[5] - section_ptrs[4]
+                self.NPCMobs_data = f.read(NPCMobs_data_len)
+                if f.tell() != section_ptrs[5]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid Mob and NPC Data")
+                tile_entities_data_len = section_ptrs[6] - section_ptrs[5]
+                self.tile_entities_data = f.read(tile_entities_data_len)
+                if f.tell() != section_ptrs[6]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid Tile Entities Section")
+            else:
+                NPCMobs_data_len = section_ptrs[5] - section_ptrs[4]
+                self.NPCMobs_data = f.read(NPCMobs_data_len)
+                if f.tell() != section_ptrs[5]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid NPC Data")
+            
+            if self.version >= 170:
+                pressure_plate_data_len = section_ptrs[7] - section_ptrs[6]
+                self.pressure_plate_data = f.read(pressure_plate_data_len)
+                if f.tell() != section_ptrs[7]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid Weighted Pressure Plate Section")
+            
+            if self.version >= 189:
+                town_manager_data_len = section_ptrs[8] - section_ptrs[7]
+                self.town_manager_data = f.read(town_manager_data_len)
+                if f.tell() != section_ptrs[8]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid Town Manager Section")
+            
+            if self.version >= 210:
+                besitary_data_len = section_ptrs[9] - section_ptrs[8]
+                self.bestiary_data = f.read(besitary_data_len)
+                if f.tell() != section_ptrs[9]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid Bestiary Section")
+            
+            if self.version >= 220:
+                creative_power_len = section_ptrs[10] - section_ptrs[9]
+                self.creative_power_data = f.read(creative_power_len)
+                if f.tell() != section_ptrs[10]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid Bestiary Section")
+            
+            self.__LoadFooter(f)            
+
 
     def __LoadSectionHeader(self, f:io.BufferedReader):
         #loading section header
@@ -833,6 +865,73 @@ class TerrariaWorld:
             rle = self.read_int16(f)
         
         return single_tile, rle
+
+    def __LoadChestData(self, f) -> list[Chest]:
+        total_chests = self.read_int16(f)
+        max_items = self.read_int16(f)
+        CHEST_MAX = 40
+
+        if max_items > CHEST_MAX:
+            items_per_chest = CHEST_MAX
+            overflowitems = max_items - CHEST_MAX
+        else:
+            items_per_chest = max_items
+            overflowitems = 0
+
+        chests = []
+
+        for i in range(total_chests):
+            X = self.read_int32(f)
+            Y = self.read_int32(f)
+            name = self.read_string(f)
+            chest = Chest(X, Y, name)
+
+            for slot in range(items_per_chest):
+                stacksize = self.read_int16(f)
+                chest.items[slot].stacksize = stacksize
+
+                if stacksize > 0:
+                    item_id = self.read_int32(f)
+                    prefix = self.read_uint8(f)
+
+                    chest.items[slot].netid = item_id
+                    chest.items[slot].stacksize = stacksize
+                    chest.items[slot].prefix = prefix
+        
+            for overflow in range(overflowitems):
+                stacksize = self.read_int16(f)
+                if stacksize > 0:
+                    self.read_int32(f)
+                    self.read_uint8(f)
+            
+            chests.append(chest)
+        
+        return chests
+
+    def __LoadSignData(self, f) -> list[Sign]:
+        totalsigns = self.read_int16(f)
+
+        signs = []
+
+        for i in range(totalsigns):
+            text = self.read_string(f)
+            x = self.read_int32(f)
+            y = self.read_int32(f)
+            sign = Sign(text, x, y)
+
+            signs.append(sign)
+        
+        return signs
+
+    def __LoadFooter(self, f):
+        if not self.read_boolean(f):
+            raise WorldFileFormatException("Invalid Boolean Footer")
+        
+        if self.read_string(f) != self.title:
+            raise WorldFileFormatException("Invalid World Title Footer")
+        
+        if self.read_int32(f) != self.worldid:
+            raise WorldFileFormatException("Invalid World ID Footer")
 
 
 world = TerrariaWorld()
