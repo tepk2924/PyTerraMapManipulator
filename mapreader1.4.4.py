@@ -2,24 +2,53 @@ import struct
 import io
 import uuid
 import datetime
-import copy
-from tile import Tile
+import numpy as np
 
 class WorldFileFormatException(Exception):
     pass
+
+class Tiles:
+    '''
+    tileinfos: np.ndarray((maxX, maxY, 20), np.int32)
+    =============================================
+    - bool : 0 - 1, ushort : 0 - 65535, byte : 0 - 255
+    - channel 0 (bool) : actuactor info
+    - channel 1 (0: full, 1: halfbrick, 2: slope TR, 3: slope TL, 4: slope BR, 5: slope BL) : brickstyle
+    - channel 2 (bool) : inactive
+    - channel 3 (bool) : is active
+    - channel 4 (byte) : liquid amount
+    - channel 5 (0: none, 1: water, 2: lava, 3: honey, 8: shimmer) : liquid type
+    - channel 6 (byte) : tule color
+    - channel 7 (ushort) : tile type
+    - channel 8 (int16) : U value
+    - channel 9 (int16) : V value
+    - channel 10 (ushort) : wall type
+    - channel 11 (byte) : wall color
+    - channel 12 (bool) : wire blue
+    - channel 13 (bool) : wire green
+    - channel 14 (bool) : wire red
+    - channel 15 (bool) : wire yellow
+    - channel 16 (bool) : full bright block
+    - chaneel 17 (bool) : full bright wall
+    - channel 18 (bool) : invisible block
+    - channel 19 (bool) : invisible wall
+    '''
+    def __init__(self, maxX, maxY):
+        self.tileinfos = np.zeros((maxX, maxY, 20), np.int32)
 
 class TerrariaWorld:
     #At least making these works for 1.4.4.....
     def __init__(self):
         self.__brickstyleenum()
         self.__liquidtypeenum()
+        self.__tileenumset()
         self.version:int = None
         self.ischinese:bool = None
         self.filerevision:int = None
         self.isfavorite:bool = None
         self.tileframeimportant:list[bool] = None
         self.__HeaderFlags_init()
-        self.tiles:list[list[Tile]] = None
+        self.tiles:Tiles = None
     
     def __brickstyleenum(self):
         self.FULL = 0x0
@@ -35,6 +64,28 @@ class TerrariaWorld:
         self.LAVA = 0x02
         self.HONEY = 0x03
         self.SHIMMER = 0x08
+    
+    def __tileenumset(self):
+        self.ACTUACTOR = 0
+        self.BRICKSTYLE = 1
+        self.INACTIVE = 2
+        self.ISACTIVE = 3
+        self.LIQUIDAMOUNT = 4
+        self.LIQUIDTYPE = 5
+        self.TILECOLOR = 6
+        self.TYPE = 7
+        self.U = 8
+        self.V = 9
+        self.WALL = 10
+        self.WALLCOLOR = 11
+        self.WIREBLUE = 12
+        self.WIREGREEN = 13
+        self.WIRERED = 14
+        self.WIREYELLOW = 15
+        self.FULLBRIGHTBLOCK = 16
+        self.FULLBRIGHTWALL = 17
+        self.INVISIBLEBLOCK = 18
+        self.INVISIBLEWALL = 19
 
     def __HeaderFlags_init(self):
         self.title:str = None
@@ -657,25 +708,24 @@ class TerrariaWorld:
                        maxX:int,
                        maxY:int,
                        version:int,
-                       tileframeimportant:list[bool]):
-        tiles = [[None]*maxY for _ in range(maxX)]
+                       tileframeimportant:list[bool]) -> Tiles:
+        tiles = Tiles(maxX, maxY)
         total_tiles = maxX*maxY
         for x in range(maxX):
             print(f"loading tile {x*maxY}/{total_tiles} done...")
             y = 0
             while y < maxY:
-                tile, rle = self.__deserializetiledata(f, tileframeimportant, version)
-                tiles[x][y] = tile
+                single_tile, rle = self.__deserializetiledata(f, tileframeimportant, version)
+                tiles.tileinfos[x, y, :] = single_tile
                 while rle > 0:
                     y += 1
-                    tiles[x][y] = copy.copy(tile)
+                    tiles.tileinfos[x, y, :] = tiles.tileinfos[x, y - 1, :]
                     rle -= 1
                 y += 1
         return tiles
 
-    def __deserializetiledata(self, f, tileframeimportant, version) -> tuple[Tile, int]:
-        tile = Tile()
-        tile.reset()
+    def __deserializetiledata(self, f, tileframeimportant, version) -> tuple[list, int]:
+        single_tile = [0]*20
         tiletype = -1
         header4 = 0
         header3 = 0
@@ -702,7 +752,7 @@ class TerrariaWorld:
         isactive:bool = (header1 & 0b0000_0010) == 0b0000_0010
 
         if isactive:
-            tile.isactive = isactive
+            single_tile[self.ISACTIVE] = isactive
 
             if not (header1 & 0b0010_0000):
                 tiletype = self.read_uint8(f)
@@ -710,69 +760,69 @@ class TerrariaWorld:
                 lowerbyte = self.read_uint8(f)
                 tiletype = self.read_uint8(f)
                 tiletype = (tiletype << 8) | lowerbyte
-            tile.type = tiletype
+            single_tile[self.TYPE] = tiletype
 
             if not tileframeimportant[tiletype]:
-                tile.U = 0
-                tile.V = 0
+                single_tile[self.U] = 0
+                single_tile[self.V] = 0
             else:
-                tile.U = self.read_int16(f)
-                tile.V = self.read_int16(f)
+                single_tile[self.U] = self.read_int16(f)
+                single_tile[self.V] = self.read_int16(f)
 
-                if tile.type == 144: #reset timers
-                    tile.V = 0
+                if single_tile[self.TYPE] == 144: #reset timers
+                    single_tile[self.V] = 0
             
             if header3 & 0b0000_1000:
-                tile.tilecolor = self.read_uint8(f)
+                single_tile[self.TILECOLOR] = self.read_uint8(f)
         
         if header1 & 0b0000_0100:
-            tile.wall = self.read_uint8(f)
+            single_tile[self.WALL] = self.read_uint8(f)
             if ((header3 & 0b0001_0000) == 0b0001_0000):
-                tile.wallcolor = self.read_uint8(f)
+                single_tile[self.WALLCOLOR] = self.read_uint8(f)
         
         liquidtype = (header1 & 0b0001_1000) >> 3
         if liquidtype != 0:
-            tile.liquidamount = self.read_uint8(f)
-            tile.liquidtype = liquidtype
+            single_tile[self.LIQUIDAMOUNT] = self.read_uint8(f)
+            single_tile[self.LIQUIDTYPE] = liquidtype
 
             if version >= 269 and ((header3 & 0b1000_0000) == 0b1000_0000):
-                tile.liquidtype = self.SHIMMER
+                single_tile[self.LIQUIDTYPE] = self.SHIMMER
         
         if header2 > 1:
             if header2 & 0b0000_0010:
-                tile.wirered = True
+                single_tile[self.WIRERED] = True
             if header2 & 0b0000_0100:
-                tile.wireblue = True
+                single_tile[self.WIREBLUE] = True
             if header2 & 0b0000_1000:
-                tile.wiregreen = True
+                single_tile[self.WIREGREEN] = True
         
             brickstyle = ((header2 & 0b0111_0000) >> 4)
             #TODO: 아마도 해당 타일의 종류가 경사를 실제로 가지는 지 검사하는 코드(1528번 줄)인 거 같음. 나중에 여유 있을 때 구현하자.
-            tile.brickstyle = brickstyle
+            single_tile[self.BRICKSTYLE] = brickstyle
 
         if header3 > 1:
             if header3 & 0b0000_0010:
-                tile.actuator = True
+                single_tile[self.ACTUACTOR] = True
             
             if header3 & 0b0000_0100:
-                tile.inactive = True
+                single_tile[self.INACTIVE] = True
             
             if header3 & 0b0010_0000:
-                tile.wireyellow = True
+                single_tile[self.WIREYELLOW] = True
             
             if version >= 222:
                 if header3 & 0b0100_0000:
-                    tile.wall = (self.read_uint8(f) << 8) | tile.wall
+                    single_tile[self.WALL] = (self.read_uint8(f) << 8) | single_tile[self.WALL]
         
         if (version >= 269 and header4 > 1):
             if header4 & 0b_0000_0010:
-                tile.invisibleblock = True
+                single_tile[self.INVISIBLEBLOCK] = True
             if header4 & 0b_0000_0100:
-                tile.invisiblewall = True
+                single_tile[self.INVISIBLEWALL] = True
             if header4 & 0b_0000_1000:
-                tile.fullbrightblock = True
+                single_tile[self.FULLBRIGHTBLOCK] = True
             if header4 & 0b_0001_0000:
-                tile.fullbrightwall = True
+                single_tile[self.FULLBRIGHTWALL] = True
         
         rlestoragetype = (header1 & 192) >> 6
         if rlestoragetype == 0:
@@ -782,7 +832,7 @@ class TerrariaWorld:
         else:
             rle = self.read_int16(f)
         
-        return tile, rle
+        return single_tile, rle
 
 
 world = TerrariaWorld()
