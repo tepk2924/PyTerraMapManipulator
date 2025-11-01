@@ -1003,7 +1003,39 @@ class TerrariaWorld:
 
         with open(save_file_path, "wb") as f:
             sectionpointers[0] = self.__SaveSectionHeader(f, self.tileframeimportant)
-            sectionpointers[1] = self.__SaveHeaderFlags(f, self.version)
+            sectionpointers[1] = self.__SaveHeaderFlags(f)
+            sectionpointers[2] = self.__SaveTiles(f, self.tileswide, self.tileshigh, self.tileframeimportant)
+            sectionpointers[3] = self.__SaveChests(f)
+            sectionpointers[4] = self.__SaveSigns(f)
+
+            if self.version >= 140:
+                f.write(self.NPCMobs_data)
+                sectionpointers[5] = f.tell()
+                f.write(self.tile_entities_data)
+                sectionpointers[6] = f.tell()
+            else:
+                f.write(self.NPCMobs_data)
+                sectionpointers[5] = f.tell()
+            
+            if self.version >= 170:
+                f.write(self.pressure_plate_data)
+                sectionpointers[7] = f.tell()
+            
+            if self.version >= 189:
+                f.write(self.town_manager_data)
+                sectionpointers[8] = f.tell()
+            
+            if self.version >= 210:
+                f.write(self.bestiary_data)
+                sectionpointers[9] = f.tell()
+            
+            if self.version >= 220:
+                f.write(self.creative_power_data)
+                sectionpointers[10] = f.tell()
+            
+            self.__SaveFooter(f)
+            self.__UpdateSectionPointers(f, sectionpointers)
+
             #TODO: SectionPointer를 업데이트하는 코드
 
     def __SaveSectionHeader(self, f:io.BufferedWriter, tileframeimportant) -> int:
@@ -1045,14 +1077,14 @@ class TerrariaWorld:
             if bitmask != 128:
                 bitmask = bitmask << 1
             else:
-                self.write_uint8(data)
+                self.write_uint8(f, data)
                 data = 0
                 bitmask = 1
         
         if bitmask != 1:
-            self.write_uint8(data)
+            self.write_uint8(f, data)
     
-    def __SaveHeaderFlags(self, f:io.BufferedWriter, version) -> int:
+    def __SaveHeaderFlags(self, f:io.BufferedWriter) -> int:
         self.write_string(self.title)
 
         if self.version >= 179:
@@ -1350,6 +1382,255 @@ class TerrariaWorld:
             self.write_uint8(f, self.moondialcooldown)
         
         return f.tell()
+
+    def __SaveTiles(self,
+                    f:io.BufferedWriter,
+                    maxX:int,
+                    maxY:int,
+                    tileframeimportant:list[bool]) -> int:
+        total_tiles = maxX*maxY
+        for x in range(maxX):
+            print(f"saving tile {x*maxY}/{total_tiles} done...")
+            y = 0
+            while y < maxY:
+                tile = self.tiles[x, y]
+                tiledata, dataindex, headerindex = self.__SerializeTilaData(self, tile)
+
+                header1 = tiledata[headerindex]
+
+                rle = 0
+                nexty = y + 1
+                remainingy = maxY - y - 1
+                while (remainingy > 0 and all(tile == self.tiles[x, nexty]) and int(tile[self.TYPE]) != 520 and int(tile[self.TYPE]) != 423):
+                    rle += 1
+                    remainingy -= 1
+                    nexty += 1
+                
+                y = y + rle
+
+                if rle > 0:
+                    tiledata[dataindex] = rle & 0b1111_1111
+                    dataindex += 1
+
+                    if rle <= 255:
+                        header1 |= 0b0100_0000
+                    else:
+                        header1 |= 0b1000_0000
+                        tiledata[dataindex] = (rle & 0b11111111_00000000) >> 8
+                
+                tiledata[headerindex] = header1
+                for idx in range(headerindex, dataindex):
+                    self.write_uint8(f, tiledata[idx])
+        return f.tell()
+    
+    def __SerializeTilaData(self,
+                            tile:np.ndarray) -> tuple[list[int], int, int]:
+        size = 16 if self.version >= 269 else 15 if self.version > 22 else 13
+
+        dataindex = 4 if self.version >= 269 else 3
+
+        tiledata = [0]*size
+
+        header4 = 0
+        header3 = 0
+        header2 = 0
+        header1 = 0
+
+        ISACTIVE = bool(tile[self.ISACTIVE])
+        TYPE = int(tile[self.TYPE])
+        U = int(tile[self.U])
+        V = int(tile[self.V])
+        TILECOLOR = int(tile[self.TILECOLOR])
+        FULLBRIGHTBLOCK = bool(tile[self.FULLBRIGHTBLOCK])
+        WALL = int(tile[self.WALL])
+        WALLCOLOR = int(tile[self.WALLCOLOR])
+        FULLBRIGHTWALL = bool(tile[self.FULLBRIGHTWALL])
+        LIQUIDAMOUNT = int(tile[self.LIQUIDAMOUNT])
+        LIQUIDTYPE = int(tile[self.LIQUIDTYPE])
+        WIRERED = bool(tile[self.WIRERED])
+        WIREBLUE = bool(tile[self.WIREBLUE])
+        WIREGREEN = bool(tile[self.WIREGREEN])
+        BRICKSTYLE = int(tile[self.BRICKSTYLE])
+        ACTUATER = bool(tile[self.ACTUACTOR])
+        INACTIVE = bool(tile[self.INACTIVE])
+        WIREYELLOW = bool(tile[self.WIREYELLOW])
+        INVISIBLEBLOCK = bool(tile[self.INVISIBLEBLOCK])
+        INVISIBLEWALL = bool(tile[self.INVISIBLEWALL])
+
+        if ISACTIVE:
+            header1 |= 0b0000_0010
+
+            tiledata[dataindex] = TYPE%256
+            dataindex += 1
+
+            if tile[self.TYPE] > 255:
+                tiledata[dataindex] = TYPE >> 8
+                dataindex += 1
+                header1 |= 0b0010_0000
+
+            if self.tileframeimportant[TYPE]:
+                tiledata[dataindex] = U & 0xFF
+                dataindex += 1
+                tiledata[dataindex] = (U & 0xFF00) >> 8
+                dataindex += 1
+                tiledata[dataindex] = V & 0xFF
+                dataindex += 1
+                tiledata[dataindex] = (V & 0xFF00) >> 8
+                dataindex += 1
+            
+            if self.version < 269:
+                if TILECOLOR != 0 or FULLBRIGHTBLOCK:
+                    color = TILECOLOR
+
+                    if color == 0 and FULLBRIGHTBLOCK:
+                        color = 31
+                    
+                    header3 |= 0b0000_1000
+                    tiledata[dataindex] = color
+                    dataindex += 1
+            else:
+                if int(tile[self.TILECOLOR] != 0) and TILECOLOR != 31:
+                    color = TILECOLOR
+
+                    header3 |= 0b0000_1000
+                    tiledata[dataindex] = color
+                    dataindex += 1
+        
+        if WALL != 0:
+            header1 |= 0b0000_0100
+            tiledata[dataindex] = WALL
+            dataindex += 1
+
+            if self.version < 269:
+                if WALLCOLOR != 0 or FULLBRIGHTWALL:
+                    color = WALLCOLOR
+
+                    if color == 0 and self.version < 269 and FULLBRIGHTWALL:
+                        color = 31
+                    
+                    header3 |= 0b0001_0000
+                    tiledata[dataindex] = color
+                    dataindex += 1
+            else:
+                if WALLCOLOR != 0 and WALLCOLOR != 31:
+                    color = WALLCOLOR
+                    header3 |= 0b0001_0000
+                    tiledata[dataindex] = color
+                    dataindex += 1
+
+        if LIQUIDAMOUNT != 0 and LIQUIDTYPE != self.NONE:
+            if self.version >= 269 and LIQUIDTYPE == self.SHIMMER:
+                header3 |= 0b1000_0000
+                header1 |= 0b0000_1000
+            elif LIQUIDTYPE == self.LAVA:
+                header1 |= 0b0001_0000
+            elif LIQUIDTYPE == self.HONEY:
+                header1 |= 0b0001_1000
+            else:
+                header1 |= 0b0000_1000
+            
+            tiledata[dataindex] = LIQUIDAMOUNT
+            dataindex += 1
+        
+        if WIRERED:
+            header2 |= 0b0000_0010
+        if WIREBLUE:
+            header2 |= 0b0000_0100
+        if WIREGREEN:
+            header2 |= 0b0000_1000
+        
+        header2 |= (BRICKSTYLE << 4)
+
+        if ACTUATER:
+            header3 |= 0b0000_0010
+        if INACTIVE:
+            header3 |= 0b0000_0100
+        if WIREYELLOW:
+            header3 |= 0b0010_0000
+        
+        if WALL > 255 and self.version >= 222:
+            header3 |= 0b0100_0000
+            tiledata[dataindex] = WALL >> 8
+            dataindex += 1
+        
+        if self.version >= 269:
+            if INVISIBLEBLOCK:
+                header4 |= 0b0000_0010
+            if INVISIBLEWALL:
+                header4 |= 0b0000_0100
+            if FULLBRIGHTBLOCK or TILECOLOR == 31:
+                header4 |= 0b0000_1000
+            if FULLBRIGHTWALL or TILECOLOR == 31:
+                header4 |= 0b0001_0000
+            
+            headerindex = 3
+            if header4 != 0:
+                header3 |= 0b0000_0001
+                tiledata[headerindex] = header4
+                headerindex -= 1
+        else:
+            headerindex = 2
+        
+        if header3 != 0:
+            header2 |= 0b0000_0001
+            tiledata[headerindex] = header3
+            headerindex -= 1
+        if header2 != 0:
+            header1 |= 0b0000_0001
+            tiledata[headerindex] = header2
+            headerindex -= 1
+        tiledata[headerindex] = header1
+        return tiledata, dataindex, headerindex
+
+    def __SaveChests(self, f:io.BufferedWriter):
+        count = len(self.chests)
+        self.write_int16(f, count)
+        MAXITEMS = 40
+        self.write_int16(f, MAXITEMS)
+
+        for chest in self.chests:
+            self.write_int32(f, chest.X)
+            self.write_int32(f, chest.Y)
+            self.write_string(f, chest.name)
+            for slot in range(MAXITEMS):
+                item = chest.items[slot]
+                stacksize = item.stacksize
+                self.write_int16(f, stacksize)
+
+                if stacksize > 0:
+                    item_id = item.netid
+                    prefix = item.prefix
+                    self.write_int16(f, item_id)
+                    self.write_uint8(f, prefix)
+        
+        return f.tell()
+    
+    def __SaveSigns(self, f:io.BufferedWriter):
+        count = len(self.signs)
+        self.write_int16(f, count)
+        for sign in self.signs:
+            text = sign.text
+            x = sign.x
+            y = sign.text
+            self.write_string(f, text)
+            self.write_int32(f, x)
+            self.write_int32(f, y)
+        
+        return f.tell()
+
+    def __SaveFooter(self, f:io.BufferedWriter):
+        self.write_boolean(f, True)
+        self.write_string(f, self.title)
+        self.wrtie_int32(f, self.worldid)
+
+    def __UpdateSectionPointers(self, f:io.BufferedWriter, sectionpointers:list[int]):
+        f.seek(0)
+        self.write_int32(f, self.version)
+        seeking_pos = 0x18 if self.version >= 140 else 0x04
+        f.seek(seeking_pos)
+        self.write_int16(f, len(sectionpointers))
+        for i in range(len(sectionpointers)):
+            self.write_int32(f, sectionpointers[i])
 
 world = TerrariaWorld()
 world.loadV2()

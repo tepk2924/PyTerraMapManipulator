@@ -1,6 +1,9 @@
-import io
-import struct
+import numpy as np
 
-with open('aaaaaaaaaaa', 'wb') as f:
-    f.write(struct.pack('<i', 100))
-    print(f.tell())
+A = np.array([[1, 0, 0],
+              [1, 1, 0]])
+
+print(A[0])
+print(A[1])
+
+print(all(A[0] == A[1]))
