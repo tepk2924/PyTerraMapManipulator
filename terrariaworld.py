@@ -3,7 +3,7 @@ import io
 import uuid
 import datetime
 import numpy as np
-import time
+import sys
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
@@ -364,7 +364,11 @@ class TerrariaWorld:
         self.write_7bit_encoded_int(f, len(data))
         f.write(data)
 
-    def loadV2(self):
+    def loadV2(self,
+               chest_verbose=False,
+               sign_verbose=False,
+               skip_header_flags=False,
+               skip_tile_data=False):
         with open(input("Map file path : "), "rb") as f:
             self.version = self.read_uint32(f)
 
@@ -374,20 +378,26 @@ class TerrariaWorld:
             if f.tell() != section_ptrs[0]:
                 raise WorldFileFormatException("Unexpected Position: Invalid File Format Section")
             
-            self.__LoadHeaderFlags(f)
-            if f.tell() != section_ptrs[1]:
-                raise WorldFileFormatException("Unexpected Position: Invalid Header Flags")
+            if skip_header_flags:
+                f.seek(section_ptrs[1])
+            else:
+                self.__LoadHeaderFlags(f)
+                if f.tell() != section_ptrs[1]:
+                    raise WorldFileFormatException("Unexpected Position: Invalid Header Flags")
 
-            self.tiles = self.__LoadTileData(f, self.tileswide, self.tileshigh, self.version, tileframeimportant)
-            if f.tell() != section_ptrs[2]:
-                print("Correcting Position Error")
+            if skip_tile_data:
                 f.seek(section_ptrs[2])
+            else:
+                self.tiles = self.__LoadTileData(f, self.tileswide, self.tileshigh, self.version, tileframeimportant)
+                if f.tell() != section_ptrs[2]:
+                    print("Correcting Position Error")
+                    f.seek(section_ptrs[2])
 
-            self.chests = self.__LoadChestData(f)
+            self.chests = self.__LoadChestData(f, chest_verbose)
             if f.tell() != section_ptrs[3]:
                 raise WorldFileFormatException("Unexpected Position: Invalid Chest Data")
             
-            self.signs = self.__LoadSignData(f)
+            self.signs = self.__LoadSignData(f, sign_verbose)
             #여기 즈음에 sign 데이터의 tile type이 진짜 표지판의 종류인지 검사하는 코드가 원래 있었음
             if f.tell() != section_ptrs[4]:
                 raise WorldFileFormatException("Unexpected Position: Invalid Sign Data")
@@ -435,15 +445,11 @@ class TerrariaWorld:
 
     def __LoadSectionHeader(self, f:io.BufferedReader):
         #loading section header
-        print(self.version)
         if self.version >= 140:
             tmp = f.tell()
             self.ischinese = (f.read(1).decode('ascii') == 'x')
-            print(self.ischinese)
             f.seek(tmp)
             headerformat = f.read(7).decode('ascii')
-            print(headerformat)
-            time.sleep(5)
             filetype = f.read(1)
             self.filerevision = self.read_uint32(f)
             flags = self.read_uint64(f)
@@ -805,8 +811,14 @@ class TerrariaWorld:
                        tileframeimportant:list[bool]) -> Tiles:
         tiles = Tiles(maxX, maxY)
         total_tiles = maxX*maxY
+        digits = len(str(total_tiles))
+        barlen = 30
+        backspace = 25 + 2*digits + barlen
         for x in range(maxX):
-            print(f"loading tile {x*maxY}/{total_tiles} done...")
+            progess = int(barlen*x/maxX)
+            if x:
+                sys.stdout.write(f'\x1b[{backspace}D')
+            sys.stdout.write(f"loading tile {x*maxY:>{digits}d}/{total_tiles} done... [{"="*progess}{" "*(barlen - progess)}]")
             y = 0
             while y < maxY:
                 single_tile, rle = self.__deserializetiledata(f, tileframeimportant, version)
@@ -816,6 +828,8 @@ class TerrariaWorld:
                     tiles.tileinfos[x, y, :] = tiles.tileinfos[x, y - 1, :]
                     rle -= 1
                 y += 1
+        sys.stdout.write(f'\x1b[{backspace}D')
+        sys.stdout.write(f"loading tile {total_tiles}/{total_tiles} done... [{"="*barlen}]\n")
         return tiles
 
     def __deserializetiledata(self, f, tileframeimportant, version) -> tuple[list, int]:
@@ -928,7 +942,7 @@ class TerrariaWorld:
         
         return single_tile, rle
 
-    def __LoadChestData(self, f) -> list[Chest]:
+    def __LoadChestData(self, f, chest_verbose) -> list[Chest]:
         total_chests = self.read_int16(f)
         max_items = self.read_int16(f)
         CHEST_MAX = 40
@@ -968,9 +982,13 @@ class TerrariaWorld:
             
             chests.append(chest)
         
+        if chest_verbose:
+            for chest in chests:
+                print(chest)
+
         return chests
 
-    def __LoadSignData(self, f) -> list[Sign]:
+    def __LoadSignData(self, f, sign_verbose) -> list[Sign]:
         totalsigns = self.read_int16(f)
 
         signs = []
@@ -983,6 +1001,10 @@ class TerrariaWorld:
 
             signs.append(sign)
         
+        if sign_verbose:
+            for sign in signs:
+                print(sign)        
+
         return signs
 
     def __LoadFooter(self, f):
@@ -1392,8 +1414,14 @@ class TerrariaWorld:
                     maxY:int,
                     tileframeimportant:list[bool]) -> int:
         total_tiles = maxX*maxY
+        digits = len(str(total_tiles))
+        barlen = 30
+        backspace = 24 + 2*digits + barlen
         for x in range(maxX):
-            print(f"saving tile {x*maxY}/{total_tiles} done...")
+            progess = int(barlen*x/maxX)
+            if x:
+                sys.stdout.write(f'\x1b[{backspace}D')
+            sys.stdout.write(f"saving tile {x*maxY:>{digits}d}/{total_tiles} done... [{"="*progess}{" "*(barlen - progess)}]")
             y = 0
             while y < maxY:
                 tile = self.tiles.tileinfos[x, y]
@@ -1430,7 +1458,8 @@ class TerrariaWorld:
                     print(tiledata)
                     exit(1)
                 y += 1
-
+        sys.stdout.write(f'\x1b[{backspace}D')
+        sys.stdout.write(f"saving tile {total_tiles}/{total_tiles} done... [{"="*barlen}]\n")
         return f.tell()
     
     def __SerializeTilaData(self,
@@ -1603,14 +1632,14 @@ class TerrariaWorld:
             self.write_int32(f, chest.Y)
             self.write_string(f, chest.name)
             for slot in range(MAXITEMS):
-                item = chest.items[slot]
+                item:Item = chest.items[slot]
                 stacksize = item.stacksize
                 self.write_int16(f, stacksize)
 
                 if stacksize > 0:
                     item_id = item.netid
                     prefix = item.prefix
-                    self.write_int16(f, item_id)
+                    self.write_int32(f, item_id)
                     self.write_uint8(f, prefix)
         
         return f.tell()

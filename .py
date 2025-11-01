@@ -1,7 +1,5 @@
-with open("aaaaa", "wb") as f:
-    f.write("시부랄".encode('utf-8'))
+import sys
 
-with open("aaaaa", 'rb') as f:
-    B = f.read().decode('utf-8')
-
-print(B)
+sys.stdout.write('Hello World!')
+sys.stdout.write('\x1b[6D') # move cursor left by 6 columns
+sys.stdout.write('my World!')
