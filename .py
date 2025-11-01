@@ -1,9 +1,7 @@
-import numpy as np
+with open("aaaaa", "wb") as f:
+    f.write("시부랄".encode('utf-8'))
 
-A = np.array([[1, 0, 0],
-              [1, 1, 0]])
+with open("aaaaa", 'rb') as f:
+    B = f.read().decode('utf-8')
 
-print(A[0])
-print(A[1])
-
-print(all(A[0] == A[1]))
+print(B)

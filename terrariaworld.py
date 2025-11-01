@@ -3,6 +3,7 @@ import io
 import uuid
 import datetime
 import numpy as np
+import time
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
@@ -434,11 +435,15 @@ class TerrariaWorld:
 
     def __LoadSectionHeader(self, f:io.BufferedReader):
         #loading section header
+        print(self.version)
         if self.version >= 140:
             tmp = f.tell()
             self.ischinese = (f.read(1).decode('ascii') == 'x')
+            print(self.ischinese)
             f.seek(tmp)
             headerformat = f.read(7).decode('ascii')
+            print(headerformat)
+            time.sleep(5)
             filetype = f.read(1)
             self.filerevision = self.read_uint32(f)
             flags = self.read_uint64(f)
@@ -1036,16 +1041,14 @@ class TerrariaWorld:
             self.__SaveFooter(f)
             self.__UpdateSectionPointers(f, sectionpointers)
 
-            #TODO: SectionPointer를 업데이트하는 코드
-
     def __SaveSectionHeader(self, f:io.BufferedWriter, tileframeimportant) -> int:
         self.write_uint32(f, self.version)
 
         if self.version >= 140:
             if self.ischinese:
-                self.write_string(f, 'xindong')
+                f.write('xindong'.encode('ascii'))
             else:
-                self.write_string(f, 'relogic')
+                f.write('relogic'.encode('ascii'))
             
             self.write_uint8(f, 3)
 
@@ -1067,7 +1070,7 @@ class TerrariaWorld:
         return f.tell()
     
     def __WriteBitArray(self, f, tileframeimportant):
-        self.write_int16(len(tileframeimportant))
+        self.write_int16(f, len(tileframeimportant))
 
         data = 0
         bitmask = 1
@@ -1085,16 +1088,16 @@ class TerrariaWorld:
             self.write_uint8(f, data)
     
     def __SaveHeaderFlags(self, f:io.BufferedWriter) -> int:
-        self.write_string(self.title)
+        self.write_string(f, self.title)
 
         if self.version >= 179:
             if self.version == 179:
                 seed = int(self.seed)
-                self.write_int32(seed)
+                self.write_int32(f, seed)
             else:
                 seed = int(self.seed)
-                self.write_string(str(seed))
-            self.write_uint64(self.worldgenversion)
+                self.write_string(f, str(seed))
+            self.write_uint64(f, self.worldgenversion)
         
         if self.version >= 181:
             f.write(self.worldguid.bytes)
@@ -1246,7 +1249,7 @@ class TerrariaWorld:
         number_of_mobs = len(self.killedmobs)
         self.write_int16(f, number_of_mobs)
         for i in range(number_of_mobs):
-            self.write_int32(f, number_of_mobs[i])
+            self.write_int32(f, self.killedmobs[i])
         
         if self.version < 128: return f.tell()
 
@@ -1393,15 +1396,15 @@ class TerrariaWorld:
             print(f"saving tile {x*maxY}/{total_tiles} done...")
             y = 0
             while y < maxY:
-                tile = self.tiles[x, y]
-                tiledata, dataindex, headerindex = self.__SerializeTilaData(self, tile)
+                tile = self.tiles.tileinfos[x, y]
+                tiledata, dataindex, headerindex = self.__SerializeTilaData(tile)
 
                 header1 = tiledata[headerindex]
 
                 rle = 0
                 nexty = y + 1
                 remainingy = maxY - y - 1
-                while (remainingy > 0 and all(tile == self.tiles[x, nexty]) and int(tile[self.TYPE]) != 520 and int(tile[self.TYPE]) != 423):
+                while (remainingy > 0 and all(tile == self.tiles.tileinfos[x, nexty]) and int(tile[self.TYPE]) != 520 and int(tile[self.TYPE]) != 423):
                     rle += 1
                     remainingy -= 1
                     nexty += 1
@@ -1417,10 +1420,17 @@ class TerrariaWorld:
                     else:
                         header1 |= 0b1000_0000
                         tiledata[dataindex] = (rle & 0b11111111_00000000) >> 8
+                        dataindex += 1
                 
                 tiledata[headerindex] = header1
-                for idx in range(headerindex, dataindex):
-                    self.write_uint8(f, tiledata[idx])
+                try:
+                    for idx in range(headerindex, dataindex):
+                        self.write_uint8(f, tiledata[idx])
+                except struct.error:
+                    print(tiledata)
+                    exit(1)
+                y += 1
+
         return f.tell()
     
     def __SerializeTilaData(self,
@@ -1498,7 +1508,7 @@ class TerrariaWorld:
         
         if WALL != 0:
             header1 |= 0b0000_0100
-            tiledata[dataindex] = WALL
+            tiledata[dataindex] = WALL%256
             dataindex += 1
 
             if self.version < 269:
@@ -1611,7 +1621,7 @@ class TerrariaWorld:
         for sign in self.signs:
             text = sign.text
             x = sign.x
-            y = sign.text
+            y = sign.y
             self.write_string(f, text)
             self.write_int32(f, x)
             self.write_int32(f, y)
@@ -1621,7 +1631,7 @@ class TerrariaWorld:
     def __SaveFooter(self, f:io.BufferedWriter):
         self.write_boolean(f, True)
         self.write_string(f, self.title)
-        self.wrtie_int32(f, self.worldid)
+        self.write_int32(f, self.worldid)
 
     def __UpdateSectionPointers(self, f:io.BufferedWriter, sectionpointers:list[int]):
         f.seek(0)
@@ -1632,5 +1642,6 @@ class TerrariaWorld:
         for i in range(len(sectionpointers)):
             self.write_int32(f, sectionpointers[i])
 
-world = TerrariaWorld()
-world.loadV2()
+if __name__ == "__main__":
+    world = TerrariaWorld()
+    world.loadV2()
