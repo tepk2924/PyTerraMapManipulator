@@ -30,6 +30,9 @@ class Tiles:
         self.tileinfos = np.zeros((maxX, maxY, 20), np.int32)
         self.__editmode = False
     
+    #These just transposes tile information.
+    #Editing is easy when tile information is stored as 2400*8400 (large), but saved as 8400*2400.
+    #So, when starting editing and finishing editing, the tile information should be transposed.
     def enter_editmode(self):
         if not self.__editmode:
             self.__editmode = True

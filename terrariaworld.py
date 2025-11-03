@@ -13,7 +13,9 @@ class WorldFileFormatException(Exception):
 
 class TerrariaWorld:
     #At least making these works for 1.4.4.....
-    def __init__(self):
+    def __init__(self,
+                 world_size:str = "large"):
+        #TODO: make an option to select world size
         self.__brickstyleenum()
         self.__liquidtypeenum()
         self.__tileenumset()
@@ -23,10 +25,9 @@ class TerrariaWorld:
         self.isfavorite:bool = False
         self.__initializetileframeimportant()
         self.__HeaderFlags_init()
-        self.tiles:Tiles = Tiles(8400, 2400) #large. Should transpose this when editing.
+        self.tiles:Tiles = Tiles(8400, 2400) #large.
         self.chests:list[Chest] = []
         self.signs:list[Sign] = []
-        # self.shimmeredtownnpcs:list[int] = None
         self.__initializeotherdata()
 
     def __brickstyleenum(self):
