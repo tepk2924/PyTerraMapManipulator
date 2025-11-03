@@ -1072,7 +1072,7 @@ class TerrariaWorld:
             else:
                 f.write('relogic'.encode('ascii'))
             
-            self.write_uint8(f, 3)
+            self.write_uint8(f, 2)
 
             self.write_uint32(f, self.filerevision)
 
@@ -1672,5 +1672,7 @@ class TerrariaWorld:
             self.write_int32(f, sectionpointers[i])
 
 if __name__ == "__main__":
-    world = TerrariaWorld()
-    world.loadV2()
+    world1 = TerrariaWorld()
+    world1.loadV2()
+    world2 = TerrariaWorld()
+    world2.loadV2()
