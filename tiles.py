@@ -28,3 +28,14 @@ class Tiles:
     '''
     def __init__(self, maxX, maxY):
         self.tileinfos = np.zeros((maxX, maxY, 20), np.int32)
+        self.__editmode = False
+    
+    def enter_editmode(self):
+        if not self.__editmode:
+            self.__editmode = True
+            self.tileinfos = self.tileinfos.transpose(1, 0, 2)
+    
+    def exit_editmode(self):
+        if self.__editmode:
+            self.__editmode = False
+            self.tileinfos = self.tileinfos.transpose(1, 0, 2)
