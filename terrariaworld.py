@@ -9,6 +9,7 @@ import random
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
+from enumeration import BrickStyle, Liquid, Ch, GameMode
 
 class WorldFileFormatException(Exception):
     pass
@@ -17,10 +18,6 @@ class TerrariaWorld:
     #At least making these works for 1.4.4.....
     def __init__(self,
                  world_size:str = "large"):
-        self.__brickstyleenum()
-        self.__liquidtypeenum()
-        self.__tileinfochannelenumset()
-        self.__difficultyenumset()
         self.version:int = 279 #1.4.4
         self.ischinese:bool = False
         self.filerevision:int = 0
@@ -31,48 +28,6 @@ class TerrariaWorld:
         self.chests:list[Chest] = []
         self.signs:list[Sign] = []
         self.__initializeotherdata()
-
-    def __brickstyleenum(self):
-        self.FULL = 0x0
-        self.HALFBRICK = 0x1
-        self.SLOPETOPRIGHT = 0x2
-        self.SLOPETOPLEFT = 0x3
-        self.SLOPEBOTTOMRIGHT = 0x4
-        self.SLOPEBOTTOMLEFT = 0x5
-
-    def __liquidtypeenum(self):
-        self.NONE = 0x0
-        self.WATER = 0x01
-        self.LAVA = 0x02
-        self.HONEY = 0x03
-        self.SHIMMER = 0x08
-    
-    def __tileinfochannelenumset(self):
-        self.ACTUACTOR = 0
-        self.BRICKSTYLE = 1
-        self.INACTIVE = 2
-        self.LIQUIDAMOUNT = 3
-        self.LIQUIDTYPE = 4
-        self.TILECOLOR = 5
-        self.TILETYPE = 6
-        self.U = 7
-        self.V = 8
-        self.WALL = 9
-        self.WALLCOLOR = 10
-        self.WIREBLUE = 11
-        self.WIREGREEN = 12
-        self.WIRERED = 13
-        self.WIREYELLOW = 14
-        self.FULLBRIGHTBLOCK = 15
-        self.FULLBRIGHTWALL = 16
-        self.INVISIBLEBLOCK = 17
-        self.INVISIBLEWALL = 18
-
-    def __difficultyenumset(self):
-        self.CLASSIC = 0
-        self.EXPERT = 1
-        self.MASTER = 2
-        self.JOURNEY = 3
 
     def __initializetileframeimportant(self):
         self.tileframeimportant:list[bool] = [False, False, False, True, True, True, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, False, False, True, False, True, True, True, True, False, True, False, True, True, True, True, False, False, False, False, False, True, False, False, False, False, False, False, True, True, False, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, True, True, True, True, False, False, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, False, True, True, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, False, False, True, True, True, True, True, True, True, True, False, True, True, True, True, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, False, True, True, False, True, False, False, True, True, True, True, True, True, False, False, False, False, False, False, True, True, False, False, True, False, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, True, True, True, True, True, False, False, True, True, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True, False, False, False, False, False, False, False, False, False, True, False, False, False, False, True, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, False, False, True, True, True, True, True, True, True, False, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, True, True, False, False, False, True, True, True, True, True, False, False, False, False, True, True, False, False, True, True, True, False, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, True, False, False, False, True, False, False, False, True, True, True, True, True, True, True, True, False, True, True, False, False, True, False, True, False, False, False, False, False, True, True, False, False, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, False, False, False, False, True, False, False, False, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, False, False, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, False, False, False, False, True, True, True, True, False, True, False, False, True, False, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, True, False, False, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
@@ -914,72 +869,72 @@ class TerrariaWorld:
                 lowerbyte = self.read_uint8(f)
                 tiletype = self.read_uint8(f)
                 tiletype = (tiletype << 8) | lowerbyte
-            single_tile[self.TILETYPE] = tiletype
+            single_tile[Ch.TILETYPE] = tiletype
 
             if not tileframeimportant[tiletype]:
-                single_tile[self.U] = 0
-                single_tile[self.V] = 0
+                single_tile[Ch.U] = 0
+                single_tile[Ch.V] = 0
             else:
-                single_tile[self.U] = self.read_int16(f)
-                single_tile[self.V] = self.read_int16(f)
+                single_tile[Ch.U] = self.read_int16(f)
+                single_tile[Ch.V] = self.read_int16(f)
 
-                if single_tile[self.TILETYPE] == 144: #reset timers
-                    single_tile[self.V] = 0
+                if single_tile[Ch.TILETYPE] == 144: #reset timers
+                    single_tile[Ch.V] = 0
             
             if header3 & 0b0000_1000:
-                single_tile[self.TILECOLOR] = self.read_uint8(f)
+                single_tile[Ch.TILECOLOR] = self.read_uint8(f)
         else:
-            single_tile[self.TILETYPE] = -1
+            single_tile[Ch.TILETYPE] = -1
 
 
         if header1 & 0b0000_0100:
-            single_tile[self.WALL] = self.read_uint8(f)
+            single_tile[Ch.WALL] = self.read_uint8(f)
             if ((header3 & 0b0001_0000) == 0b0001_0000):
-                single_tile[self.WALLCOLOR] = self.read_uint8(f)
+                single_tile[Ch.WALLCOLOR] = self.read_uint8(f)
         
         liquidtype = (header1 & 0b0001_1000) >> 3
         if liquidtype != 0:
-            single_tile[self.LIQUIDAMOUNT] = self.read_uint8(f)
-            single_tile[self.LIQUIDTYPE] = liquidtype
+            single_tile[Ch.LIQUIDAMOUNT] = self.read_uint8(f)
+            single_tile[Ch.LIQUIDTYPE] = liquidtype
 
             if version >= 269 and ((header3 & 0b1000_0000) == 0b1000_0000):
-                single_tile[self.LIQUIDTYPE] = self.SHIMMER
+                single_tile[Ch.LIQUIDTYPE] = Liquid.SHIMMER
         
         if header2 > 1:
             if header2 & 0b0000_0010:
-                single_tile[self.WIRERED] = True
+                single_tile[Ch.WIRERED] = True
             if header2 & 0b0000_0100:
-                single_tile[self.WIREBLUE] = True
+                single_tile[Ch.WIREBLUE] = True
             if header2 & 0b0000_1000:
-                single_tile[self.WIREGREEN] = True
+                single_tile[Ch.WIREGREEN] = True
         
             brickstyle = ((header2 & 0b0111_0000) >> 4)
             #TODO: 아마도 해당 타일의 종류가 경사를 실제로 가지는 지 검사하는 코드(1528번 줄)인 거 같음. 나중에 여유 있을 때 구현하자.
-            single_tile[self.BRICKSTYLE] = brickstyle
+            single_tile[Ch.BRICKSTYLE] = brickstyle
 
         if header3 > 1:
             if header3 & 0b0000_0010:
-                single_tile[self.ACTUACTOR] = True
+                single_tile[Ch.ACTUACTOR] = True
             
             if header3 & 0b0000_0100:
-                single_tile[self.INACTIVE] = True
+                single_tile[Ch.INACTIVE] = True
             
             if header3 & 0b0010_0000:
-                single_tile[self.WIREYELLOW] = True
+                single_tile[Ch.WIREYELLOW] = True
             
             if version >= 222:
                 if header3 & 0b0100_0000:
-                    single_tile[self.WALL] = (self.read_uint8(f) << 8) | single_tile[self.WALL]
+                    single_tile[Ch.WALL] = (self.read_uint8(f) << 8) | single_tile[Ch.WALL]
         
         if (version >= 269 and header4 > 1):
             if header4 & 0b_0000_0010:
-                single_tile[self.INVISIBLEBLOCK] = True
+                single_tile[Ch.INVISIBLEBLOCK] = True
             if header4 & 0b_0000_0100:
-                single_tile[self.INVISIBLEWALL] = True
+                single_tile[Ch.INVISIBLEWALL] = True
             if header4 & 0b_0000_1000:
-                single_tile[self.FULLBRIGHTBLOCK] = True
+                single_tile[Ch.FULLBRIGHTBLOCK] = True
             if header4 & 0b_0001_0000:
-                single_tile[self.FULLBRIGHTWALL] = True
+                single_tile[Ch.FULLBRIGHTWALL] = True
         
         rlestoragetype = (header1 & 192) >> 6
         if rlestoragetype == 0:
@@ -1487,7 +1442,7 @@ class TerrariaWorld:
                 rle = 0
                 nexty = y + 1
                 remainingy = maxY - y - 1
-                while (remainingy > 0 and all(tile == self.tiles.tileinfos[x, nexty]) and int(tile[self.TILETYPE]) != 520 and int(tile[self.TILETYPE]) != 423):
+                while (remainingy > 0 and all(tile == self.tiles.tileinfos[x, nexty]) and int(tile[Ch.TILETYPE]) != 520 and int(tile[Ch.TILETYPE]) != 423):
                     rle += 1
                     remainingy -= 1
                     nexty += 1
@@ -1530,26 +1485,26 @@ class TerrariaWorld:
         header2 = 0
         header1 = 0
 
-        TYPE = int(tile[self.TILETYPE])
+        TYPE = int(tile[Ch.TILETYPE])
         ISACTIVE = (TYPE != -1)
-        U = int(tile[self.U])
-        V = int(tile[self.V])
-        TILECOLOR = int(tile[self.TILECOLOR])
-        FULLBRIGHTBLOCK = bool(tile[self.FULLBRIGHTBLOCK])
-        WALL = int(tile[self.WALL])
-        WALLCOLOR = int(tile[self.WALLCOLOR])
-        FULLBRIGHTWALL = bool(tile[self.FULLBRIGHTWALL])
-        LIQUIDAMOUNT = int(tile[self.LIQUIDAMOUNT])
-        LIQUIDTYPE = int(tile[self.LIQUIDTYPE])
-        WIRERED = bool(tile[self.WIRERED])
-        WIREBLUE = bool(tile[self.WIREBLUE])
-        WIREGREEN = bool(tile[self.WIREGREEN])
-        BRICKSTYLE = int(tile[self.BRICKSTYLE])
-        ACTUATER = bool(tile[self.ACTUACTOR])
-        INACTIVE = bool(tile[self.INACTIVE])
-        WIREYELLOW = bool(tile[self.WIREYELLOW])
-        INVISIBLEBLOCK = bool(tile[self.INVISIBLEBLOCK])
-        INVISIBLEWALL = bool(tile[self.INVISIBLEWALL])
+        U = int(tile[Ch.U])
+        V = int(tile[Ch.V])
+        TILECOLOR = int(tile[Ch.TILECOLOR])
+        FULLBRIGHTBLOCK = bool(tile[Ch.FULLBRIGHTBLOCK])
+        WALL = int(tile[Ch.WALL])
+        WALLCOLOR = int(tile[Ch.WALLCOLOR])
+        FULLBRIGHTWALL = bool(tile[Ch.FULLBRIGHTWALL])
+        LIQUIDAMOUNT = int(tile[Ch.LIQUIDAMOUNT])
+        LIQUIDTYPE = int(tile[Ch.LIQUIDTYPE])
+        WIRERED = bool(tile[Ch.WIRERED])
+        WIREBLUE = bool(tile[Ch.WIREBLUE])
+        WIREGREEN = bool(tile[Ch.WIREGREEN])
+        BRICKSTYLE = int(tile[Ch.BRICKSTYLE])
+        ACTUATER = bool(tile[Ch.ACTUACTOR])
+        INACTIVE = bool(tile[Ch.INACTIVE])
+        WIREYELLOW = bool(tile[Ch.WIREYELLOW])
+        INVISIBLEBLOCK = bool(tile[Ch.INVISIBLEBLOCK])
+        INVISIBLEWALL = bool(tile[Ch.INVISIBLEWALL])
 
         if ISACTIVE:
             header1 |= 0b0000_0010
@@ -1557,7 +1512,7 @@ class TerrariaWorld:
             tiledata[dataindex] = TYPE%256
             dataindex += 1
 
-            if tile[self.TILETYPE] > 255:
+            if tile[Ch.TILETYPE] > 255:
                 tiledata[dataindex] = TYPE >> 8
                 dataindex += 1
                 header1 |= 0b0010_0000
@@ -1583,7 +1538,7 @@ class TerrariaWorld:
                     tiledata[dataindex] = color
                     dataindex += 1
             else:
-                if int(tile[self.TILECOLOR] != 0) and TILECOLOR != 31:
+                if int(tile[Ch.TILECOLOR] != 0) and TILECOLOR != 31:
                     color = TILECOLOR
 
                     header3 |= 0b0000_1000
@@ -1612,13 +1567,13 @@ class TerrariaWorld:
                     tiledata[dataindex] = color
                     dataindex += 1
 
-        if LIQUIDAMOUNT != 0 and LIQUIDTYPE != self.NONE:
-            if self.version >= 269 and LIQUIDTYPE == self.SHIMMER:
+        if LIQUIDAMOUNT != 0 and LIQUIDTYPE != Liquid.NONE:
+            if self.version >= 269 and LIQUIDTYPE == Liquid.SHIMMER:
                 header3 |= 0b1000_0000
                 header1 |= 0b0000_1000
-            elif LIQUIDTYPE == self.LAVA:
+            elif LIQUIDTYPE == Liquid.LAVA:
                 header1 |= 0b0001_0000
-            elif LIQUIDTYPE == self.HONEY:
+            elif LIQUIDTYPE == Liquid.HONEY:
                 header1 |= 0b0001_1000
             else:
                 header1 |= 0b0000_1000
@@ -1727,4 +1682,4 @@ class TerrariaWorld:
             self.write_int32(f, sectionpointers[i])
 
 if __name__ == "__main__":
-    pass
+    print(Ch.TILETYPE)
