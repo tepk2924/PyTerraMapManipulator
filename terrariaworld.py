@@ -20,6 +20,7 @@ class TerrariaWorld:
         self.__brickstyleenum()
         self.__liquidtypeenum()
         self.__tileinfochannelenumset()
+        self.__difficultyenumset()
         self.version:int = 279 #1.4.4
         self.ischinese:bool = False
         self.filerevision:int = 0
@@ -163,7 +164,7 @@ class TerrariaWorld:
             self.spawnY:int = 427
             self.groundlevel:float = 532.0
             self.rocklevel:float = 904.0
-        self.time:float = 13500.0
+        self.time:float = 27000.0
         self.daytime:bool = False
         self.moonphase:int = 0
         self.bloodmoon:bool = False
@@ -880,7 +881,7 @@ class TerrariaWorld:
         return tiles
 
     def __deserializetiledata(self, f, tileframeimportant, version) -> tuple[list, int]:
-        single_tile = [0]*20
+        single_tile = [0]*19
         tiletype = -1
         header4 = 0
         header3 = 0
