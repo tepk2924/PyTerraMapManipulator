@@ -1,2 +1,3 @@
 *.wld
 .py
+__pycache__

@@ -2,6 +2,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
+from enumeration import Ch
+from PIL import Image
+import numpy as np
 
 color_on_diamond_gemspark = {
     0: "#B5B5C0",
@@ -36,3 +39,41 @@ color_on_diamond_gemspark = {
     29: "#262628",
     30: "#131816"
 }
+
+RGB_pallette = []
+
+for idx in range(31):
+    RGBinfo = color_on_diamond_gemspark[idx][1:]
+    R = int(RGBinfo[:2], 16)
+    G = int(RGBinfo[2:4], 16)
+    B = int(RGBinfo[4:], 16)
+    RGB_pallette.append([R, G, B])
+
+RGB_pallette_np = np.array(RGB_pallette, np.uint8)
+
+image_np = np.array(Image.open(input("Image file path : ")))[:, :, :3]
+image_row, image_col, _ = image_np.shape
+
+calculation1 = np.ndarray((image_row, image_col, 3, 31), np.int32)
+
+calculation2 = np.tile(np.expand_dims(image_np, axis=-1), (1, 1, 1, 31))
+
+for idx in range(31):
+    calculation1[:, :, :, idx] = np.tile(np.expand_dims(np.expand_dims(RGB_pallette_np[idx], axis=0), axis=0), (image_row, image_col, 1))
+
+err = np.sum((calculation1 - calculation2)**2, axis=2)
+color = np.argmin(err, axis=2)
+
+world = TerrariaWorld()
+
+world.tiles.enter_editmode()
+
+MINROW = 200
+MINCOL = 4200 - image_col//2
+
+world.tiles.tileinfos[MINROW:MINROW + image_row, MINCOL:MINCOL + image_col, Ch.WALL] = 155 #diamond gemspark wall
+world.tiles.tileinfos[MINROW:MINROW + image_row, MINCOL:MINCOL + image_col, Ch.WALLCOLOR] = color #setting color
+
+world.tiles.exit_editmode()
+
+world.saveV2()
