@@ -3,10 +3,10 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
 from enumeration import Ch
-from PIL import Image
+import cv2
 import numpy as np
 
-color_on_diamond_gemspark = {
+RGBcolor_on_diamond_gemspark = {
     0: "#B5B5C0",
     1: "#C85A69",
     2: "#C89369",
@@ -43,23 +43,26 @@ color_on_diamond_gemspark = {
 RGB_pallette = []
 
 for idx in range(31):
-    RGBinfo = color_on_diamond_gemspark[idx][1:]
+    RGBinfo = RGBcolor_on_diamond_gemspark[idx][1:]
     R = int(RGBinfo[:2], 16)
     G = int(RGBinfo[2:4], 16)
     B = int(RGBinfo[4:], 16)
     RGB_pallette.append([R, G, B])
 
-RGB_pallette_np = np.array(RGB_pallette, np.uint8)
+RGB_pallette_np = np.expand_dims(np.array(RGB_pallette, np.uint8), axis=1)
 
-image_np = np.array(Image.open(input("Image file path : ")))[:, :, :3]
-image_row, image_col, _ = image_np.shape
+LAB_pallette_np = cv2.cvtColor(RGB_pallette_np, cv2.COLOR_RGB2LAB)
+
+
+LAB_image_np = cv2.cvtColor(np.array(cv2.imread(input("file path : "), cv2.IMREAD_COLOR_RGB)), cv2.COLOR_RGB2LAB)
+image_row, image_col, _ = LAB_image_np.shape
 
 calculation1 = np.ndarray((image_row, image_col, 3, 31), np.int32)
 
-calculation2 = np.tile(np.expand_dims(image_np, axis=-1), (1, 1, 1, 31))
+calculation2 = np.tile(np.expand_dims(LAB_image_np, axis=-1), (1, 1, 1, 31))
 
 for idx in range(31):
-    calculation1[:, :, :, idx] = np.tile(np.expand_dims(np.expand_dims(RGB_pallette_np[idx], axis=0), axis=0), (image_row, image_col, 1))
+    calculation1[:, :, :, idx] = np.tile(np.expand_dims(np.expand_dims(LAB_pallette_np[idx], axis=0), axis=0), (image_row, image_col, 1))
 
 err = np.sum((calculation1 - calculation2)**2, axis=2)
 color = np.argmin(err, axis=2)
