@@ -4,6 +4,8 @@ import uuid
 import datetime
 import numpy as np
 import sys
+import os
+import random
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
@@ -15,17 +17,16 @@ class TerrariaWorld:
     #At least making these works for 1.4.4.....
     def __init__(self,
                  world_size:str = "large"):
-        #TODO: make an option to select world size
         self.__brickstyleenum()
         self.__liquidtypeenum()
-        self.__tileenumset()
+        self.__tileinfochannelenumset()
         self.version:int = 279 #1.4.4
         self.ischinese:bool = False
         self.filerevision:int = 0
         self.isfavorite:bool = False
         self.__initializetileframeimportant()
-        self.__HeaderFlags_init()
-        self.tiles:Tiles = Tiles(8400, 2400) #large.
+        self.__HeaderFlags_init(world_size)
+        self.tiles:Tiles = Tiles(self.tileswide, self.tileshigh)
         self.chests:list[Chest] = []
         self.signs:list[Sign] = []
         self.__initializeotherdata()
@@ -45,27 +46,32 @@ class TerrariaWorld:
         self.HONEY = 0x03
         self.SHIMMER = 0x08
     
-    def __tileenumset(self):
+    def __tileinfochannelenumset(self):
         self.ACTUACTOR = 0
         self.BRICKSTYLE = 1
         self.INACTIVE = 2
-        self.ISACTIVE = 3
-        self.LIQUIDAMOUNT = 4
-        self.LIQUIDTYPE = 5
-        self.TILECOLOR = 6
-        self.TYPE = 7
-        self.U = 8
-        self.V = 9
-        self.WALL = 10
-        self.WALLCOLOR = 11
-        self.WIREBLUE = 12
-        self.WIREGREEN = 13
-        self.WIRERED = 14
-        self.WIREYELLOW = 15
-        self.FULLBRIGHTBLOCK = 16
-        self.FULLBRIGHTWALL = 17
-        self.INVISIBLEBLOCK = 18
-        self.INVISIBLEWALL = 19
+        self.LIQUIDAMOUNT = 3
+        self.LIQUIDTYPE = 4
+        self.TILECOLOR = 5
+        self.TILETYPE = 6
+        self.U = 7
+        self.V = 8
+        self.WALL = 9
+        self.WALLCOLOR = 10
+        self.WIREBLUE = 11
+        self.WIREGREEN = 12
+        self.WIRERED = 13
+        self.WIREYELLOW = 14
+        self.FULLBRIGHTBLOCK = 15
+        self.FULLBRIGHTWALL = 16
+        self.INVISIBLEBLOCK = 17
+        self.INVISIBLEWALL = 18
+
+    def __difficultyenumset(self):
+        self.CLASSIC = 0
+        self.EXPERT = 1
+        self.MASTER = 2
+        self.JOURNEY = 3
 
     def __initializetileframeimportant(self):
         self.tileframeimportant:list[bool] = [False, False, False, True, True, True, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, False, False, True, False, True, True, True, True, False, True, False, True, True, True, True, False, False, False, False, False, True, False, False, False, False, False, False, True, True, False, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, True, True, True, True, False, False, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, False, True, True, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, False, False, True, True, True, True, True, True, True, True, False, True, True, True, True, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, False, True, True, False, True, False, False, True, True, True, True, True, True, False, False, False, False, False, False, True, True, False, False, True, False, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, True, True, True, True, True, False, False, True, True, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True, False, False, False, False, False, False, False, False, False, True, False, False, False, False, True, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, False, False, True, True, True, True, True, True, True, False, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, True, True, False, False, False, True, True, True, True, True, False, False, False, False, True, True, False, False, True, True, True, False, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, True, False, False, False, True, False, False, False, True, True, True, True, True, True, True, True, False, True, True, False, False, True, False, True, False, False, False, False, False, True, True, False, False, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, False, False, False, False, True, False, False, False, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, False, False, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, False, False, False, False, True, True, True, True, False, True, False, False, True, False, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, True, False, False, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
@@ -78,18 +84,30 @@ class TerrariaWorld:
         self.bestiary_data = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         self.creative_power_data = b'\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00\x00\x01\t\x00\x00\x01\n\x00\x00\x01\x0c\x00\x00\x00\x00\x00\x01\r\x00\x00\x00'
 
-    def __HeaderFlags_init(self):
-        self.title:str = 'PLACEHOLDER'
-        self.seed:str = '1778745523' #taken
+    def __HeaderFlags_init(self,
+                           world_size:str):
+        world_size = world_size.lower()
+        if world_size not in ["small", "medium", "large"]:
+            print("World size unknown. Set to large.")
+            world_size = "large"
+        self.title:str = None
+        self.seed:str = str(random.randint(0, (1 << 31) - 1)) #random
         self.worldgenversion:int = 1198295875585 #taken
         self.worldguid:uuid.UUID = uuid.uuid1()
-        self.worldid:int = 713643135
-        self.leftworld:float = 0.0 #large
-        self.rightworld:float = 134400.0 #large
-        self.topworld:float = 0.0 #large
-        self.bottomworld:float = 38400.0 #large
-        self.tileshigh:int = 2400 #large
-        self.tileswide:int = 8400 #large
+        self.worldid:int = random.randint(0, (1 << 31) - 1) #random
+        self.leftworld:float = 0.0 #always float 0.0?
+        self.topworld:float = 0.0 #always float 0.0?
+        if world_size == "small":
+            self.tileshigh:int = 1200
+            self.tileswide:int = 4200
+        elif world_size == "medium":
+            self.tileshigh:int = 1800
+            self.tileswide:int = 6400
+        else: #large
+            self.tileshigh:int = 2400
+            self.tileswide:int = 8400
+        self.bottomworld:float = float(self.tileshigh*16)
+        self.rightworld:float = float(self.tileswide*16)
         self.gamemode:int = 0 #classic
         self.drunkworld:bool = False
         self.goodworld:bool = False
@@ -101,18 +119,28 @@ class TerrariaWorld:
         self.zenithworld:bool = False
         self.creationtime:int = -8584768520111393488
         self.moontype:int = 0
-        self.treeX:list[int] = [3187, 3585, 5542]
-        self.treeX0:int = 3187
-        self.treeX1:int = 3585
-        self.treeX2:int = 5542
+        if world_size == "small":
+            self.treeX:list[int] = [1754, 4200, 4200]
+        elif world_size == "medium":
+            self.treeX:list[int] = [3194, 5443, 6400]
+        else:
+            self.treeX:list[int] = [3187, 3585, 5542]
+        self.treeX0:int = self.treeX[0]
+        self.treeX1:int = self.treeX[1]
+        self.treeX2:int = self.treeX[2]
         self.treestyle0:int = 0
         self.treestyle1:int = 0
         self.treestyle2:int = 0
         self.treestyle3:int = 0
-        self.cavebackX:list[int] = [3014, 4885, 7204]
-        self.cavebackX0:int = 3014
-        self.cavebackX1:int = 4885
-        self.cavebackX2:int = 7204
+        if world_size == "small":
+            self.cavebackX:list[int] = [2263, 4200, 4200]
+        elif world_size == "medium":
+            self.cavebackX:list[int] = [1291, 4147, 6400]
+        else:
+            self.cavebackX:list[int] = [3014, 4885, 7204]
+        self.cavebackX0:int = self.cavebackX[0]
+        self.cavebackX1:int = self.cavebackX[1]
+        self.cavebackX2:int = self.cavebackX[2]
         self.cavebackstyle0:int = 0
         self.cavebackstyle1:int = 0
         self.cavebackstyle2:int = 0
@@ -120,17 +148,35 @@ class TerrariaWorld:
         self.icebackstyle:int = 0
         self.junglebackstyle:int = 0
         self.hellbackstyle:int = 0
-        self.spawnX:int = 4199
-        self.spawnY:int = 587
-        self.groundlevel:float = 649.0
-        self.rocklevel:float = 829.0
-        self.time:float = 22642.0
+        if world_size == "small":
+            self.spawnX:int = 2104
+            self.spawnY:int = 204
+            self.groundlevel:float = 314.0
+            self.rocklevel:float = 416.0
+        elif world_size == "medium":
+            self.spawnX:int = 3204
+            self.spawnY:int = 391
+            self.groundlevel:float = 467.0
+            self.rocklevel:float = 719.0
+        else:
+            self.spawnX:int = 4197
+            self.spawnY:int = 427
+            self.groundlevel:float = 532.0
+            self.rocklevel:float = 904.0
+        self.time:float = 13500.0
         self.daytime:bool = False
         self.moonphase:int = 0
         self.bloodmoon:bool = False
         self.iseclipse:bool = False
-        self.dungeonX:int = 7283
-        self.dungeonY:int = 605
+        if world_size == "small":
+            self.dungeonX:int = 3441 #taken
+            self.dungeonY:int = 243 #taken
+        elif world_size == "medium":
+            self.dungeonX:int = 583 #taken
+            self.dungeonY:int = 312 #taken
+        else: #large
+            self.dungeonX:int = 7283 #taken
+            self.dungeonY:int = 605 #taken
         self.iscrimson:bool = False
         self.downedboss1eyeofcthulhu:bool = False
         self.downedboss2eaterofworlds:bool = False
@@ -293,12 +339,6 @@ class TerrariaWorld:
     def read_uint64(self, f:io.BufferedReader) -> int:
         return struct.unpack('<Q', f.read(8))[0]
 
-    # def read_int64(self, f:io.BufferedReader) -> int:
-    #     return struct.unpack('<q', f.read(8))[0]
-    
-    # def read_uint64(self, f:io.BufferedReader) -> int:
-    #     return struct.unpack('<Q', f.read(8))[0]    
-
     def read_single(self, f:io.BufferedReader) -> float:
         return struct.unpack('<f', f.read(4))[0]
 
@@ -338,7 +378,7 @@ class TerrariaWorld:
     def write_double(self, f:io.BufferedWriter, data:float):
         f.write(struct.pack('<d', data))
 
-    def read_7bit_encoded_int(self, f):
+    def read_7bit_encoded_int(self, f): #THX chatgpt
         result = 0
         shift = 0
         while True:
@@ -352,7 +392,7 @@ class TerrariaWorld:
             shift += 7
         return result
 
-    def write_7bit_encoded_int(self, f, value):
+    def write_7bit_encoded_int(self, f, value): #THX chatgpt
         while True:
             b = value & 0x7F
             value >>= 7
@@ -362,11 +402,11 @@ class TerrariaWorld:
                 f.write(bytes([b]))
                 break
 
-    def read_string(self, f) -> str:
+    def read_string(self, f) -> str: #THX chatgpt
         strlen = self.read_7bit_encoded_int(f)
         return f.read(strlen).decode('utf-8')
     
-    def write_string(self, f, s: str):
+    def write_string(self, f, s: str): #THX chatgpt
         data = s.encode('utf-8')
         self.write_7bit_encoded_int(f, len(data))
         f.write(data)
@@ -867,15 +907,13 @@ class TerrariaWorld:
         isactive:bool = (header1 & 0b0000_0010) == 0b0000_0010
 
         if isactive:
-            single_tile[self.ISACTIVE] = isactive
-
             if not (header1 & 0b0010_0000):
                 tiletype = self.read_uint8(f)
             else:
                 lowerbyte = self.read_uint8(f)
                 tiletype = self.read_uint8(f)
                 tiletype = (tiletype << 8) | lowerbyte
-            single_tile[self.TYPE] = tiletype
+            single_tile[self.TILETYPE] = tiletype
 
             if not tileframeimportant[tiletype]:
                 single_tile[self.U] = 0
@@ -884,12 +922,15 @@ class TerrariaWorld:
                 single_tile[self.U] = self.read_int16(f)
                 single_tile[self.V] = self.read_int16(f)
 
-                if single_tile[self.TYPE] == 144: #reset timers
+                if single_tile[self.TILETYPE] == 144: #reset timers
                     single_tile[self.V] = 0
             
             if header3 & 0b0000_1000:
                 single_tile[self.TILECOLOR] = self.read_uint8(f)
-        
+        else:
+            single_tile[self.TILETYPE] = -1
+
+
         if header1 & 0b0000_0100:
             single_tile[self.WALL] = self.read_uint8(f)
             if ((header3 & 0b0001_0000) == 0b0001_0000):
@@ -1032,6 +1073,11 @@ class TerrariaWorld:
 
     def saveV2(self):
         save_file_path = input("Saving File Path : ")
+        if not save_file_path.endswith(".wld"):
+            save_file_path = save_file_path + ".wld"
+
+        if self.title is None:
+            self.title = os.path.basename(save_file_path)[:-4]
 
         sectionpointers = [None]*self.__getsectioncount()
 
@@ -1433,14 +1479,14 @@ class TerrariaWorld:
             y = 0
             while y < maxY:
                 tile = self.tiles.tileinfos[x, y]
-                tiledata, dataindex, headerindex = self.__SerializeTilaData(tile)
+                tiledata, dataindex, headerindex = self.__serializeTilaData(tile)
 
                 header1 = tiledata[headerindex]
 
                 rle = 0
                 nexty = y + 1
                 remainingy = maxY - y - 1
-                while (remainingy > 0 and all(tile == self.tiles.tileinfos[x, nexty]) and int(tile[self.TYPE]) != 520 and int(tile[self.TYPE]) != 423):
+                while (remainingy > 0 and all(tile == self.tiles.tileinfos[x, nexty]) and int(tile[self.TILETYPE]) != 520 and int(tile[self.TILETYPE]) != 423):
                     rle += 1
                     remainingy -= 1
                     nexty += 1
@@ -1470,7 +1516,7 @@ class TerrariaWorld:
         sys.stdout.write(f"saving tile {total_tiles}/{total_tiles} done... [{"="*barlen}]\n")
         return f.tell()
     
-    def __SerializeTilaData(self,
+    def __serializeTilaData(self,
                             tile:np.ndarray) -> tuple[list[int], int, int]:
         size = 16 if self.version >= 269 else 15 if self.version > 22 else 13
 
@@ -1483,8 +1529,8 @@ class TerrariaWorld:
         header2 = 0
         header1 = 0
 
-        ISACTIVE = bool(tile[self.ISACTIVE])
-        TYPE = int(tile[self.TYPE])
+        TYPE = int(tile[self.TILETYPE])
+        ISACTIVE = (TYPE != -1)
         U = int(tile[self.U])
         V = int(tile[self.V])
         TILECOLOR = int(tile[self.TILECOLOR])
@@ -1510,7 +1556,7 @@ class TerrariaWorld:
             tiledata[dataindex] = TYPE%256
             dataindex += 1
 
-            if tile[self.TYPE] > 255:
+            if tile[self.TILETYPE] > 255:
                 tiledata[dataindex] = TYPE >> 8
                 dataindex += 1
                 header1 |= 0b0010_0000
