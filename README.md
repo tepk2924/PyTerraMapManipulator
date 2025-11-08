@@ -19,14 +19,21 @@ After this terminal will ask you the path of the wanted .wld file.
 
 2. Manipulating World Properties & Tile
 ```python
-from enumeration import GameMode, Ch, TileID
+from enumeration import GameMode, Ch, TileID, Liquid
 
 world.gamemode = GameMode.EXPERT #Setting World Difficulty to Expert
 world.title = "MyWorld" #Setting World Title (In Game)
+'''
+you can find other world properties in the class source code (terrariaworld.py).
+there are too many of them to explain them all here.
+'''
 
-world.tiles.enter_editmode()
-world.tiles.tileinfos[:, :, Ch.TILETYPE] = TileID.Stone #Filling Entire World with stone block
-world.tiles.exit_editmode()
+world.tiles.enter_editmode() #Transposes tile information
+world.tiles.tileinfos[:, :world.tileswide//2, Ch.TILETYPE] = TileID.Stone #Filling Entire Left Side of the World with stone block
+world.tiles.tileinfos[:world.tileshigh//2, world.tileswide//2:, Ch.LIQUIDTYPE] = Liquid.LAVA #Filling Entire Upper Right Side of the World with lava
+world.tiles.tileinfos[:world.tileshigh//2, world.tileswide//2:, Ch.LIQUIDAMOUNT] = 255 #Setting lava amount as full(255)
+world.tiles.tileinfos[world.tileshigh//2:, :world.tileswide//2, Ch.INACTIVE] = 1 #Actuate Out Entire Lower Left
+world.tiles.exit_editmode() #Transposes back
 ```
 
 3. Saving World
