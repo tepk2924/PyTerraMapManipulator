@@ -42,6 +42,39 @@ class GameMode(IntEnum):
     MASTER = 2
     JOURNEY = 3
 
+class Paint(IntEnum):
+    NONE = 0
+    RED = 1
+    ORANGE = 2
+    YELLOW = 3
+    LIME = 4
+    GREEN = 5
+    TEAL = 6
+    CYAN = 7
+    SKYBLUE = 8
+    BLUE = 9
+    PURPLE = 10
+    VIOLET = 11
+    PINK = 12
+    DEEPRED = 13
+    DEEPORANGE = 14
+    DEEPYELLOW = 15
+    DEEPLIME = 16
+    DEEPGREEN = 17
+    DEEPTEAL = 18
+    DEEPCYAN = 19
+    DEEPSKYBLUE = 20
+    DEEPBLUE = 21
+    DEEPPURPLE = 22
+    DEEPVIOLET = 23
+    DEEPPINK = 24
+    BLACK = 25
+    WHITE = 26
+    GRAY = 27
+    BROWN = 28
+    SHADOW = 29
+    NEGATIVE = 30
+
 class TileID(IntEnum):
     Dirt = 0
     Stone = 1
