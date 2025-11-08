@@ -1,3 +1,4 @@
 *.wld
 .py
 __pycache__
+*.txt
