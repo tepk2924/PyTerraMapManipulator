@@ -36,6 +36,9 @@ world.tiles.tileinfos : np.ndarray (world.tileshigh, world.tileswide, 19) when e
 #Filling Entire Left Side of the World with stone block
 world.tiles.tileinfos[:, :world.tileswide//2, Ch.TILETYPE] = TileID.Stone
 
+#Remove tile at rectangular area from (0, 600) to (499, 799)
+world.tiles.tileinfos[600:800, :500] = -1
+
 #Filling Entire Upper Right Side of the World with lava
 world.tiles.tileinfos[:world.tileshigh//2, world.tileswide//2:, Ch.LIQUIDTYPE] = Liquid.LAVA
 
@@ -48,13 +51,13 @@ world.tiles.tileinfos[world.tileshigh//2:, :world.tileswide//2, Ch.INACTIVE] = 1
 #Color block at X=2500, Y=1500 with red color
 world.tiles.tileinfos[1500, 2500, Ch.TILECOLOR] = Paint.RED
 
-#Fill rectangular area from (5000, 1200) to (5050, 1300) with dirt wall
+#Fill rectangular area from (5000, 1200) to (5049, 1299) with dirt wall
 world.tiles.tileinfos[1200:1300, 5000:5050, Ch.WALL] = WallID.Dirt
 
 #Paint that dirt wall with skyblue color
 world.tiles.tileinfos[1200:1300, 5000:5050, Ch.WALLCOLOR] = Paint.SKYBLUE
 
-#Place Red Wire at line segment from (4000, 1000) to (5000, 1000)
+#Place Red Wire at line segment from (4000, 1000) to (4999, 1000)
 world.tiles.tileinfos[1000, 4000:5000, Ch.WIRERED] = 1
 
 world.tiles.exit_editmode() #Transposes back
