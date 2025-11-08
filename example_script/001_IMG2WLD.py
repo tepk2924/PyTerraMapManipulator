@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
-from enumeration import Ch
+from enumeration import Channel, WallID
 import cv2
 import numpy as np
 
@@ -74,8 +74,8 @@ world.tiles.enter_editmode()
 MINROW = 200
 MINCOL = 4200 - image_col//2
 
-world.tiles.tileinfos[MINROW:MINROW + image_row, MINCOL:MINCOL + image_col, Ch.WALL] = 155 #diamond gemspark wall
-world.tiles.tileinfos[MINROW:MINROW + image_row, MINCOL:MINCOL + image_col, Ch.WALLCOLOR] = color #setting color
+world.tiles.tileinfos[MINROW:MINROW + image_row, MINCOL:MINCOL + image_col, Channel.WALL] = WallID.DiamondGemspark #diamond gemspark wall
+world.tiles.tileinfos[MINROW:MINROW + image_row, MINCOL:MINCOL + image_col, Channel.WALLCOLOR] = color #setting color
 
 world.tiles.exit_editmode()
 

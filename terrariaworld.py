@@ -9,7 +9,7 @@ import random
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
-from enumeration import BrickStyle, Liquid, Ch, GameMode
+from enumeration import BrickStyle, Liquid, Channel, GameMode
 
 class WorldFileFormatException(Exception):
     pass
@@ -874,72 +874,72 @@ class TerrariaWorld:
                 lowerbyte = self.read_uint8(f)
                 tiletype = self.read_uint8(f)
                 tiletype = (tiletype << 8) | lowerbyte
-            single_tile[Ch.TILETYPE] = tiletype
+            single_tile[Channel.TILETYPE] = tiletype
 
             if not tileframeimportant[tiletype]:
-                single_tile[Ch.U] = 0
-                single_tile[Ch.V] = 0
+                single_tile[Channel.U] = 0
+                single_tile[Channel.V] = 0
             else:
-                single_tile[Ch.U] = self.read_int16(f)
-                single_tile[Ch.V] = self.read_int16(f)
+                single_tile[Channel.U] = self.read_int16(f)
+                single_tile[Channel.V] = self.read_int16(f)
 
-                if single_tile[Ch.TILETYPE] == 144: #reset timers
-                    single_tile[Ch.V] = 0
+                if single_tile[Channel.TILETYPE] == 144: #reset timers
+                    single_tile[Channel.V] = 0
             
             if header3 & 0b0000_1000:
-                single_tile[Ch.TILECOLOR] = self.read_uint8(f)
+                single_tile[Channel.TILECOLOR] = self.read_uint8(f)
         else:
-            single_tile[Ch.TILETYPE] = -1
+            single_tile[Channel.TILETYPE] = -1
 
 
         if header1 & 0b0000_0100:
-            single_tile[Ch.WALL] = self.read_uint8(f)
+            single_tile[Channel.WALL] = self.read_uint8(f)
             if ((header3 & 0b0001_0000) == 0b0001_0000):
-                single_tile[Ch.WALLCOLOR] = self.read_uint8(f)
+                single_tile[Channel.WALLCOLOR] = self.read_uint8(f)
         
         liquidtype = (header1 & 0b0001_1000) >> 3
         if liquidtype != 0:
-            single_tile[Ch.LIQUIDAMOUNT] = self.read_uint8(f)
-            single_tile[Ch.LIQUIDTYPE] = liquidtype
+            single_tile[Channel.LIQUIDAMOUNT] = self.read_uint8(f)
+            single_tile[Channel.LIQUIDTYPE] = liquidtype
 
             if version >= 269 and ((header3 & 0b1000_0000) == 0b1000_0000):
-                single_tile[Ch.LIQUIDTYPE] = Liquid.SHIMMER
+                single_tile[Channel.LIQUIDTYPE] = Liquid.SHIMMER
         
         if header2 > 1:
             if header2 & 0b0000_0010:
-                single_tile[Ch.WIRERED] = True
+                single_tile[Channel.WIRERED] = True
             if header2 & 0b0000_0100:
-                single_tile[Ch.WIREBLUE] = True
+                single_tile[Channel.WIREBLUE] = True
             if header2 & 0b0000_1000:
-                single_tile[Ch.WIREGREEN] = True
+                single_tile[Channel.WIREGREEN] = True
         
             brickstyle = ((header2 & 0b0111_0000) >> 4)
             #TODO: 아마도 해당 타일의 종류가 경사를 실제로 가지는 지 검사하는 코드(1528번 줄)인 거 같음. 나중에 여유 있을 때 구현하자.
-            single_tile[Ch.BRICKSTYLE] = brickstyle
+            single_tile[Channel.BRICKSTYLE] = brickstyle
 
         if header3 > 1:
             if header3 & 0b0000_0010:
-                single_tile[Ch.ACTUACTOR] = True
+                single_tile[Channel.ACTUACTOR] = True
             
             if header3 & 0b0000_0100:
-                single_tile[Ch.INACTIVE] = True
+                single_tile[Channel.INACTIVE] = True
             
             if header3 & 0b0010_0000:
-                single_tile[Ch.WIREYELLOW] = True
+                single_tile[Channel.WIREYELLOW] = True
             
             if version >= 222:
                 if header3 & 0b0100_0000:
-                    single_tile[Ch.WALL] = (self.read_uint8(f) << 8) | single_tile[Ch.WALL]
+                    single_tile[Channel.WALL] = (self.read_uint8(f) << 8) | single_tile[Channel.WALL]
         
         if (version >= 269 and header4 > 1):
             if header4 & 0b_0000_0010:
-                single_tile[Ch.INVISIBLEBLOCK] = True
+                single_tile[Channel.INVISIBLEBLOCK] = True
             if header4 & 0b_0000_0100:
-                single_tile[Ch.INVISIBLEWALL] = True
+                single_tile[Channel.INVISIBLEWALL] = True
             if header4 & 0b_0000_1000:
-                single_tile[Ch.FULLBRIGHTBLOCK] = True
+                single_tile[Channel.FULLBRIGHTBLOCK] = True
             if header4 & 0b_0001_0000:
-                single_tile[Ch.FULLBRIGHTWALL] = True
+                single_tile[Channel.FULLBRIGHTWALL] = True
         
         rlestoragetype = (header1 & 192) >> 6
         if rlestoragetype == 0:
@@ -1446,7 +1446,7 @@ class TerrariaWorld:
                 rle = 0
                 nexty = y + 1
                 remainingy = maxY - y - 1
-                while (remainingy > 0 and all(tile == self.tiles.tileinfos[x, nexty]) and int(tile[Ch.TILETYPE]) != 520 and int(tile[Ch.TILETYPE]) != 423):
+                while (remainingy > 0 and all(tile == self.tiles.tileinfos[x, nexty]) and int(tile[Channel.TILETYPE]) != 520 and int(tile[Channel.TILETYPE]) != 423):
                     rle += 1
                     remainingy -= 1
                     nexty += 1
@@ -1489,26 +1489,26 @@ class TerrariaWorld:
         header2 = 0
         header1 = 0
 
-        TYPE = int(tile[Ch.TILETYPE])
+        TYPE = int(tile[Channel.TILETYPE])
         ISACTIVE = (TYPE != -1)
-        U = int(tile[Ch.U])
-        V = int(tile[Ch.V])
-        TILECOLOR = int(tile[Ch.TILECOLOR])
-        FULLBRIGHTBLOCK = bool(tile[Ch.FULLBRIGHTBLOCK])
-        WALL = int(tile[Ch.WALL])
-        WALLCOLOR = int(tile[Ch.WALLCOLOR])
-        FULLBRIGHTWALL = bool(tile[Ch.FULLBRIGHTWALL])
-        LIQUIDAMOUNT = int(tile[Ch.LIQUIDAMOUNT])
-        LIQUIDTYPE = int(tile[Ch.LIQUIDTYPE])
-        WIRERED = bool(tile[Ch.WIRERED])
-        WIREBLUE = bool(tile[Ch.WIREBLUE])
-        WIREGREEN = bool(tile[Ch.WIREGREEN])
-        BRICKSTYLE = int(tile[Ch.BRICKSTYLE])
-        ACTUATER = bool(tile[Ch.ACTUACTOR])
-        INACTIVE = bool(tile[Ch.INACTIVE])
-        WIREYELLOW = bool(tile[Ch.WIREYELLOW])
-        INVISIBLEBLOCK = bool(tile[Ch.INVISIBLEBLOCK])
-        INVISIBLEWALL = bool(tile[Ch.INVISIBLEWALL])
+        U = int(tile[Channel.U])
+        V = int(tile[Channel.V])
+        TILECOLOR = int(tile[Channel.TILECOLOR])
+        FULLBRIGHTBLOCK = bool(tile[Channel.FULLBRIGHTBLOCK])
+        WALL = int(tile[Channel.WALL])
+        WALLCOLOR = int(tile[Channel.WALLCOLOR])
+        FULLBRIGHTWALL = bool(tile[Channel.FULLBRIGHTWALL])
+        LIQUIDAMOUNT = int(tile[Channel.LIQUIDAMOUNT])
+        LIQUIDTYPE = int(tile[Channel.LIQUIDTYPE])
+        WIRERED = bool(tile[Channel.WIRERED])
+        WIREBLUE = bool(tile[Channel.WIREBLUE])
+        WIREGREEN = bool(tile[Channel.WIREGREEN])
+        BRICKSTYLE = int(tile[Channel.BRICKSTYLE])
+        ACTUATER = bool(tile[Channel.ACTUACTOR])
+        INACTIVE = bool(tile[Channel.INACTIVE])
+        WIREYELLOW = bool(tile[Channel.WIREYELLOW])
+        INVISIBLEBLOCK = bool(tile[Channel.INVISIBLEBLOCK])
+        INVISIBLEWALL = bool(tile[Channel.INVISIBLEWALL])
 
         if ISACTIVE:
             header1 |= 0b0000_0010
@@ -1516,7 +1516,7 @@ class TerrariaWorld:
             tiledata[dataindex] = TYPE%256
             dataindex += 1
 
-            if tile[Ch.TILETYPE] > 255:
+            if tile[Channel.TILETYPE] > 255:
                 tiledata[dataindex] = TYPE >> 8
                 dataindex += 1
                 header1 |= 0b0010_0000
@@ -1542,7 +1542,7 @@ class TerrariaWorld:
                     tiledata[dataindex] = color
                     dataindex += 1
             else:
-                if int(tile[Ch.TILECOLOR] != 0) and TILECOLOR != 31:
+                if int(tile[Channel.TILECOLOR] != 0) and TILECOLOR != 31:
                     color = TILECOLOR
 
                     header3 |= 0b0000_1000

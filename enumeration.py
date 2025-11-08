@@ -15,7 +15,7 @@ class Liquid(IntEnum):
     HONEY = 0x03
     SHIMMER = 0x08
 
-class Ch(IntEnum):
+class Channel(IntEnum):
     ACTUACTOR = 0
     BRICKSTYLE = 1
     INACTIVE = 2

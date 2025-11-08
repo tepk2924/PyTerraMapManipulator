@@ -4,7 +4,7 @@ import random
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
-from enumeration import GameMode, Ch, Liquid, TileID, ItemID, WallID
+from enumeration import GameMode, Channel, Liquid, TileID, ItemID, WallID
 from chest import Chest, Item
 
 def Place_Sprite(world:TerrariaWorld,
@@ -15,11 +15,11 @@ def Place_Sprite(world:TerrariaWorld,
                  sprite_colnum:int,
                  U_shift:int=0,
                  V_shift:int=0):
-    world.tiles.tileinfos[row:row + sprite_rownum, col:col + sprite_colnum, Ch.TILETYPE] = sprite_number
+    world.tiles.tileinfos[row:row + sprite_rownum, col:col + sprite_colnum, Channel.TILETYPE] = sprite_number
     for r in range(sprite_rownum):
         for c in range(sprite_colnum):
-            world.tiles.tileinfos[row + r, col + c, Ch.U] = 18*c + U_shift
-            world.tiles.tileinfos[row + r, col + c, Ch.V] = 18*r + V_shift
+            world.tiles.tileinfos[row + r, col + c, Channel.U] = 18*c + U_shift
+            world.tiles.tileinfos[row + r, col + c, Channel.V] = 18*r + V_shift
 
 def Place_Chest(world:TerrariaWorld,
                 row:int,
@@ -65,7 +65,7 @@ tile = -1 * np.ones((ROW*5, COL*5))
 for r in range(ROW):
     for c in range(COL):
         tile[5*r + 3, 5*c + 2] = random.choice(blocklist)
-world.tiles.tileinfos[:, :, Ch.TILETYPE] = tile
+world.tiles.tileinfos[:, :, Channel.TILETYPE] = tile
 
 #Generate Dungeon
 '''
@@ -73,22 +73,22 @@ Dungeon : 5884 West, 148 Height
 '''
 world.dungeonY = 458 #Row
 world.dungeonX = 1260 #Column
-world.tiles.tileinfos[400, 1220:1300, Ch.TILETYPE] = TileID.BlueDungeonBrick
-world.tiles.tileinfos[401:458, 1220:1300, Ch.TILETYPE] = -1 #Placing Air
-world.tiles.tileinfos[458:460, 1220:1300, Ch.TILETYPE] = TileID.BlueDungeonBrick
+world.tiles.tileinfos[400, 1220:1300, Channel.TILETYPE] = TileID.BlueDungeonBrick
+world.tiles.tileinfos[401:458, 1220:1300, Channel.TILETYPE] = -1 #Placing Air
+world.tiles.tileinfos[458:460, 1220:1300, Channel.TILETYPE] = TileID.BlueDungeonBrick
 states[80:92, 244:260] = 1
 
 #Generate Shimmer Pond
-world.tiles.tileinfos[1200:1220, 6200:6400, Ch.TILETYPE] = TileID.Stone #Placing Stone
-world.tiles.tileinfos[1200:1205, 6280:6320, Ch.TILETYPE] = -1 #Placing Air to fill shimmer
-world.tiles.tileinfos[1200:1205, 6280:6320, Ch.LIQUIDTYPE] = Liquid.SHIMMER
-world.tiles.tileinfos[1200:1205, 6280:6320, Ch.LIQUIDAMOUNT] = 255
+world.tiles.tileinfos[1200:1220, 6200:6400, Channel.TILETYPE] = TileID.Stone #Placing Stone
+world.tiles.tileinfos[1200:1205, 6280:6320, Channel.TILETYPE] = -1 #Placing Air to fill shimmer
+world.tiles.tileinfos[1200:1205, 6280:6320, Channel.LIQUIDTYPE] = Liquid.SHIMMER
+world.tiles.tileinfos[1200:1205, 6280:6320, Channel.LIQUIDAMOUNT] = 255
 states[240:244, 1240:1280] = 1
 
 #Generate Temple
-world.tiles.tileinfos[1100:1158, 5800:5900, Ch.TILETYPE] = -1 #Placing Air
-world.tiles.tileinfos[1100:1160, 5800:5900, Ch.WALL] = WallID.LihzahrdBrickUnsafe #Lih Wall (Mob spawnable)
-world.tiles.tileinfos[1158:1160, 5800:5900, Ch.TILETYPE] = TileID.LihzahrdBrick #Placing Lihzarhd Brick
+world.tiles.tileinfos[1100:1158, 5800:5900, Channel.TILETYPE] = -1 #Placing Air
+world.tiles.tileinfos[1100:1160, 5800:5900, Channel.WALL] = WallID.LihzahrdBrickUnsafe #Lih Wall (Mob spawnable)
+world.tiles.tileinfos[1158:1160, 5800:5900, Channel.TILETYPE] = TileID.LihzahrdBrick #Placing Lihzarhd Brick
 Place_Sprite(world, 1156, 5850, TileID.Lihzahrd, 2, 3) #Placing Lih Altar
 Place_Chest(world, 1156, 5830, ItemID.LihzahrdPowerCell, 10, 576, 0) #Placing Chest with 10 Lih Cell
 Place_Chest(world, 1156, 5870, ItemID.LihzahrdPowerCell, 10, 576, 0) #Placing Chest with 10 Lih Cell
@@ -104,12 +104,12 @@ for _ in range(2000):
         c = random.randint(50, COL - 51)
         if states[r, c] != 1:
             break
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.TILETYPE] = -1 #Placing Air
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.LIQUIDTYPE] = Liquid.WATER
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.LIQUIDAMOUNT] = 255
-    world.tiles.tileinfos[5*r + 4, 5*c + 2, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
-    world.tiles.tileinfos[5*r + 3, 5*c + 1, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
-    world.tiles.tileinfos[5*r + 3, 5*c + 3, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.TILETYPE] = -1 #Placing Air
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.LIQUIDTYPE] = Liquid.WATER
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.LIQUIDAMOUNT] = 255
+    world.tiles.tileinfos[5*r + 4, 5*c + 2, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 1, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 3, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
     states[r, c] = 1
 
 #Generate Lava
@@ -119,12 +119,12 @@ for _ in range(1000):
         c = random.randint(50, COL - 51)
         if states[r, c] != 1:
             break
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.TILETYPE] = -1 #Placing Air
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.LIQUIDTYPE] = Liquid.LAVA
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.LIQUIDAMOUNT] = 255
-    world.tiles.tileinfos[5*r + 4, 5*c + 2, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
-    world.tiles.tileinfos[5*r + 3, 5*c + 1, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
-    world.tiles.tileinfos[5*r + 3, 5*c + 3, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.TILETYPE] = -1 #Placing Air
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.LIQUIDTYPE] = Liquid.LAVA
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.LIQUIDAMOUNT] = 255
+    world.tiles.tileinfos[5*r + 4, 5*c + 2, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 1, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 3, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
     states[r, c] = 1
 
 #Generate Honey
@@ -134,12 +134,12 @@ for _ in range(500):
         c = random.randint(50, COL - 51)
         if states[r, c] != 1:
             break
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.TILETYPE] = -1 #Placing Air
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.LIQUIDTYPE] = Liquid.HONEY
-    world.tiles.tileinfos[5*r + 3, 5*c + 2, Ch.LIQUIDAMOUNT] = 255
-    world.tiles.tileinfos[5*r + 4, 5*c + 2, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
-    world.tiles.tileinfos[5*r + 3, 5*c + 1, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
-    world.tiles.tileinfos[5*r + 3, 5*c + 3, Ch.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.TILETYPE] = -1 #Placing Air
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.LIQUIDTYPE] = Liquid.HONEY
+    world.tiles.tileinfos[5*r + 3, 5*c + 2, Channel.LIQUIDAMOUNT] = 255
+    world.tiles.tileinfos[5*r + 4, 5*c + 2, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 1, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
+    world.tiles.tileinfos[5*r + 3, 5*c + 3, Channel.TILETYPE] = TileID.Bubble #Placing bubble to hold liquid
     states[r, c] = 1
 
 #Generating Altars
@@ -150,7 +150,7 @@ for _ in range(50):
         if states[r, c] != 1:
             break
     Place_Sprite(world, 5*r + 1, 5*c + 1, TileID.DemonAltar, 2, 3) #Corruption Altar
-    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Ch.TILETYPE] = TileID.Ebonstone #Ebonstone Block
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Channel.TILETYPE] = TileID.Ebonstone #Ebonstone Block
     states[r, c] = 1
 for _ in range(50):
     while True:
@@ -159,7 +159,7 @@ for _ in range(50):
         if states[r, c] != 1:
             break
     Place_Sprite(world, 5*r + 1, 5*c + 1, TileID.DemonAltar, 2, 3, 54, 0) #Crimson Altar
-    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Ch.TILETYPE] = TileID.Crimstone #Crimstone Block
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Channel.TILETYPE] = TileID.Crimstone #Crimstone Block
     states[r, c] = 1
 
 #Generating Hellforges
@@ -170,7 +170,7 @@ for _ in range(25):
         if states[r, c] != 1:
             break
     Place_Sprite(world, 5*r + 1, 5*c + 1, TileID.Hellforge, 2, 3) #Hellforge
-    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Ch.TILETYPE] = TileID.ObsidianBrick #Obsidian Brick
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Channel.TILETYPE] = TileID.ObsidianBrick #Obsidian Brick
     states[r, c] = 1
 
 #Generating Orbs / Hearts
@@ -198,7 +198,7 @@ while True:
     if states[r, c] != 1:
         break
 Place_Chest(world, 5*r + 1, 5*c + 1, ItemID.VampireKnives, 1, 900, 0) #Locked Crimson Chest with Vampire Knives
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Ch.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
+world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
     r = random.randint(0, ROW - 1)
@@ -206,7 +206,7 @@ while True:
     if states[r, c] != 1:
         break
 Place_Chest(world, 5*r + 1, 5*c + 1, ItemID.StaffoftheFrostHydra, 1, 972, 0) #Locked Ice Chest with Frost Hydra Staff
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Ch.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
+world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
     r = random.randint(0, ROW - 1)
@@ -214,7 +214,7 @@ while True:
     if states[r, c] != 1:
         break
 Place_Chest(world, 5*r + 1, 5*c + 1, ItemID.RainbowGun, 1, 936, 0) #Locked Hallow Chest with Rainbow Gun
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Ch.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
+world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
     r = random.randint(0, ROW - 1)
@@ -222,7 +222,7 @@ while True:
     if states[r, c] != 1:
         break
 Place_Chest(world, 5*r + 1, 5*c + 1, ItemID.PiranhaGun, 1, 828, 0) #Locked Jungle Chest with Piranha Gun
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Ch.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
+world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
     r = random.randint(0, ROW - 1)
@@ -230,7 +230,7 @@ while True:
     if states[r, c] != 1:
         break
 Place_Chest(world, 5*r + 1, 5*c + 1, ItemID.ScourgeoftheCorruptor, 1, 864, 0) #Locked Corruption Chest with Scourge of the Corrupter
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Ch.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
+world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
     r = random.randint(0, ROW - 1)
@@ -238,7 +238,7 @@ while True:
     if states[r, c] != 1:
         break
 Place_Chest_Group2(world, 5*r + 1, 5*c + 1, ItemID.StormTigerStaff, 1, 468, 0) #Locked Desert Chest with Desert Tiger Staff
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Ch.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
+world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 
 world.tiles.exit_editmode()
