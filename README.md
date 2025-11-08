@@ -71,3 +71,5 @@ After this terminal will ask you the path of the save file path.
 If the file path does not ends with ".wld" (which is extension for terraria world file), it will automatically append it.
 '''
 ```
+
+Browse example_script/ to find more usage examples.
