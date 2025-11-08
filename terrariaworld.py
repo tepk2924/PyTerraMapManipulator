@@ -372,11 +372,11 @@ class TerrariaWorld:
         self.write_7bit_encoded_int(f, len(data))
         f.write(data)
 
-    def loadV2(self,
-               chest_verbose=False,
-               sign_verbose=False,
-               skip_header_flags=False,
-               skip_tile_data=False):
+    def load_world(self,
+                   chest_verbose=False,
+                   sign_verbose=False,
+                   skip_header_flags=False,
+                   skip_tile_data=False):
         with open(input("Map file path : "), "rb") as f:
             self.version = self.read_uint32(f)
 
@@ -1032,7 +1032,7 @@ class TerrariaWorld:
         if world_id_footer != self.worldid:
             raise WorldFileFormatException("Invalid World ID Footer")
 
-    def saveV2(self):
+    def save_world(self):
         save_file_path = input("Saving File Path : ")
         if not save_file_path.endswith(".wld"):
             save_file_path = save_file_path + ".wld"
@@ -1684,6 +1684,3 @@ class TerrariaWorld:
         self.write_int16(f, len(sectionpointers))
         for i in range(len(sectionpointers)):
             self.write_int32(f, sectionpointers[i])
-
-if __name__ == "__main__":
-    print(Ch.TILETYPE)

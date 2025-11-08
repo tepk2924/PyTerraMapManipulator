@@ -79,4 +79,4 @@ world.tiles.tileinfos[MINROW:MINROW + image_row, MINCOL:MINCOL + image_col, Ch.W
 
 world.tiles.exit_editmode()
 
-world.saveV2()
+world.save_world()

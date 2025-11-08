@@ -242,4 +242,4 @@ world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Ch.TILETYPE] = TileID.BlueDungeo
 states[r, c] = 1
 
 world.tiles.exit_editmode()
-world.saveV2()
+world.save_world()
