@@ -771,6 +771,7 @@ class TileID(IntEnum):
     RainbowMossBlock = 692
 
 class ItemID(IntEnum):
+    Empty = 0
     IronPickaxe = 1
     DirtBlock = 2
     StoneBlock = 3
@@ -6574,3 +6575,79 @@ class WallID(IntEnum):
     XenonMossBlockWall = 344
     VioletMossBlockWall = 345
     RainbowMossBlockWall = 346
+
+class ChestUV:
+    Barrel = (180, 0)
+    BlueDungeonChest = (1404, 0)
+    BlueDungeonChestLocked = (1440, 0)
+    BoneChest = (1476, 0)
+    BorealWoodChest = (1188, 0)
+    CactusChest = (1512, 0)
+    CorruptionChest = (684, 0)
+    CorruptionChestLocked = (864, 0)
+    CrimsonChest = (720, 0)
+    CrimsonChestLocked = (900, 0)
+    #CrystalChest(unused) = (1872, 0)
+    DynastyChest = (1008, 0)
+    EbonwoodChest = (252, 0)
+    FleshChest = (1548, 0)
+    FrozenChest = (792, 0)
+    FrozenChestLocked = (972, 0)
+    GlassChest = (1692, 0)
+    GoldChest = (36, 0)
+    GoldChestLocked = (72, 0)
+    #GoldenChest(unused) = (1908, 0)
+    GraniteChest = (1800, 0)
+    GreenDungeonChest = (1260, 0)
+    GreenDungeonChestLocked = (1296, 0)
+    HallowedChest = (756, 0)
+    HallowedChestLocked = (936, 0)
+    HoneyChest = (1044, 0)
+    IceChest = (396, 0)
+    IvyChest = (360, 0)
+
+    JungleChest = (648, 0)
+    JungleChestLocked = (828, 0)
+    LihzahrdChest = (576, 0)
+    LivingWoodChest = (432, 0)
+    MarbleChest = (1836, 0)
+    MartianChest = (1728, 0)
+    MeteoriteChest = (1764, 0)
+    MushroomChest = (1152, 0)
+    ObsidianChest = (1584, 0)
+    PalmWoodChest = (1116, 0)
+    PearlWoodChest = (324, 0)
+    PinkDungeonChest = (1332, 0)
+    PinkDungeonChestLocked = (1368, 0)
+    PumpkinChest = (1620, 0)
+    RichMahoganyChest = (288, 0)
+    ShadewoodChest = (504, 0)
+    ShadowChest = (108, 0)
+    ShadowChestLocked = (144, 0)
+    SkywareChest = (468, 0)
+    SlimeChest = (1224, 0)
+    SpookyChest = (1656, 0)
+    SteampunkChest = (1080, 0)
+    TrashCan = (216, 0)
+    WaterChest = (612, 0)
+    WebCoveredChest = (540, 0)
+    WoodenChest = (0, 0)
+
+class Chest2UV:
+    AshWoodChest = (576, 0)
+    BalloonChest = (540, 0)
+    BambooChest = (396, 0)
+    CrystalChest = (0, 0)
+    DeadMansChest = (144, 0)
+    DesertChest = (432, 0)
+    DesertChestLocked = (468, 0)
+    GoldenChest = (36, 0)
+    GolfChest = (324, 0)
+    LesionChest = (108, 0)
+    NebulaChest = (252, 0)
+    ReefChest = (504, 0)
+    SandstoneChest = (360, 0)
+    SolarChest = (180, 0)
+    SpiderChest = (72, 0)
+    StardustChest = (288, 0)
+    VortexChest = (216, 0)
