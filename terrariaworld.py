@@ -375,11 +375,15 @@ class TerrariaWorld:
         f.write(data)
 
     def load_world(self,
+                   file_path=None,
                    chest_verbose=False,
                    sign_verbose=False,
                    skip_header_flags=False,
-                   skip_tile_data=False):
-        with open(input("Map file path : "), "rb") as f:
+                   skip_tile_data=False,
+                   ):
+        if file_path is None:
+            file_path = input("Map file path : ")
+        with open(file_path, "rb") as f:
             self.version = self.__read_uint32(f)
 
             tileframeimportant, section_ptrs = self.__LoadSectionHeader(f)
@@ -1091,8 +1095,10 @@ class TerrariaWorld:
             chest.items[idx] = item_list[idx]
         self.chests.append(chest)
 
-    def save_world(self):
-        save_file_path = input("Saving File Path : ")
+    def save_world(self,
+                   save_file_path:str=None):
+        if save_file_path is None:
+            save_file_path = input("Saving File Path : ")
         if not save_file_path.endswith(".wld"):
             save_file_path = save_file_path + ".wld"
 
@@ -1732,10 +1738,10 @@ class TerrariaWorld:
 
     def __SavePressurePlate(self, f:io.BufferedWriter):
         count = len(self.pressure_plates)
-        self.__write_int32(count)
+        self.__write_int32(f, count)
         for plate in self.pressure_plates:
-            self.__write_int32(plate.posX)
-            self.__write_int32(plate.posY)
+            self.__write_int32(f, plate.posX)
+            self.__write_int32(f, plate.posY)
 
     def __SaveFooter(self, f:io.BufferedWriter):
         self.__write_boolean(f, True)
