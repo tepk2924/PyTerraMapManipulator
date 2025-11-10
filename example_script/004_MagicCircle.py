@@ -72,7 +72,7 @@ for angle in np.linspace(0, 2*np.pi, 8, False):
 
 result = np.where(result >= 1, 1, 0)
 
-color_scheme = np.int32((5*x + 3*y)/100)%12 + 1
+color_scheme = np.int32((5*x + 3*y)/100)%12 + 13
 color_scheme = color_scheme*result
 
 world = TerrariaWorld(world_size = "small")
