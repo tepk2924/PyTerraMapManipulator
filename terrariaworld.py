@@ -9,6 +9,7 @@ import random
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
+from pressureplate import PressurePlate
 from enumeration import BrickStyle, Liquid, Channel, GameMode, TileID
 
 class WorldFileFormatException(Exception):
@@ -27,8 +28,10 @@ class TerrariaWorld:
         self.tiles:Tiles = Tiles(self.tileswide, self.tileshigh)
         self.chests:list[Chest] = []
         self.signs:list[Sign] = []
+        self.pressure_plates:list[PressurePlate] = []
         self.__initializeotherdata()
 
+    #SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __initializetileframeimportant(self):
         '''
         This decides whether tile type is block or sprite.
@@ -40,7 +43,6 @@ class TerrariaWorld:
     def __initializeotherdata(self):
         self.NPCMobs_data = b'\x00\x00\x00\x00\x01%\x00\x00\x00\x00\x00\x97\xe3G\x00\xa0\x16F\x00s\x1c\x00\x00]\x02\x00\x00\x01\x00\x00\x00\x00\x00\x00'
         self.tile_entities_data = b'\x00\x00\x00\x00'
-        self.pressure_plate_data = b'\x00\x00\x00\x00'
         self.town_manager_data = b'\x00\x00\x00\x00'
         self.bestiary_data = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         self.creative_power_data = b'\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00\x00\x01\t\x00\x00\x01\n\x00\x00\x01\x0c\x00\x00\x00\x00\x00\x01\r\x00\x00\x00'
@@ -389,6 +391,7 @@ class TerrariaWorld:
             if skip_header_flags:
                 f.seek(section_ptrs[1])
             else:
+                #World Informations
                 self.__LoadHeaderFlags(f)
                 if f.tell() != section_ptrs[1]:
                     raise WorldFileFormatException("Unexpected Position: Invalid Header Flags")
@@ -396,6 +399,7 @@ class TerrariaWorld:
             if skip_tile_data:
                 f.seek(section_ptrs[2])
             else:
+                #World Tile Datas
                 self.tiles = self.__LoadTileData(f, self.tileswide, self.tileshigh, self.version, tileframeimportant)
                 if f.tell() != section_ptrs[2]:
                     print("Correcting Position Error")
@@ -416,6 +420,8 @@ class TerrariaWorld:
                 if f.tell() != section_ptrs[5]:
                     raise WorldFileFormatException("Unexpected Position: Invalid Mob and NPC Data")
                 tile_entities_data_len = section_ptrs[6] - section_ptrs[5]
+                #As far as I know; this includes information about target dummy, item frame, logic sensor, display doll, weapons rack, hats rack, food platter, and pylons.
+                #Check test_tileentity.py to see how to parse tile_entity data. I will not implement this until 1.4.5 arrives.
                 self.tile_entities_data = f.read(tile_entities_data_len)
                 if f.tell() != section_ptrs[6]:
                     raise WorldFileFormatException("Unexpected Position: Invalid Tile Entities Section")
@@ -426,8 +432,8 @@ class TerrariaWorld:
                     raise WorldFileFormatException("Unexpected Position: Invalid NPC Data")
             
             if self.version >= 170:
-                pressure_plate_data_len = section_ptrs[7] - section_ptrs[6]
-                self.pressure_plate_data = f.read(pressure_plate_data_len)
+                #.wld file saves weighted pressure plates that were being stepped on while player exiting the world. Interesting.
+                self.pressure_plates = self.__LoadPressurePlate(f)
                 if f.tell() != section_ptrs[7]:
                     raise WorldFileFormatException("Unexpected Position: Invalid Weighted Pressure Plate Section")
             
@@ -1016,6 +1022,15 @@ class TerrariaWorld:
 
         return signs
 
+    def __LoadPressurePlate(self, f) -> list[PressurePlate]:
+        count = self.__read_int32(f)
+        ret = []
+        for counter in range(count):
+            posX = self.__read_int32(f)
+            posY = self.__read_int32(f)
+            ret.append(PressurePlate(posX, posY))
+        return ret
+
     def __LoadFooter(self, f):
         boolean_footer = self.__read_boolean(f)
         # print(f"{boolean_footer = }")
@@ -1103,7 +1118,7 @@ class TerrariaWorld:
                 sectionpointers[5] = f.tell()
             
             if self.version >= 170:
-                f.write(self.pressure_plate_data)
+                self.__SavePressurePlate(f)
                 sectionpointers[7] = f.tell()
             
             if self.version >= 189:
@@ -1714,6 +1729,13 @@ class TerrariaWorld:
             self.__write_int32(f, y)
         
         return f.tell()
+
+    def __SavePressurePlate(self, f:io.BufferedWriter):
+        count = len(self.pressure_plates)
+        self.__write_int32(count)
+        for plate in self.pressure_plates:
+            self.__write_int32(plate.posX)
+            self.__write_int32(plate.posY)
 
     def __SaveFooter(self, f:io.BufferedWriter):
         self.__write_boolean(f, True)

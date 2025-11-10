@@ -5,4 +5,4 @@ class Sign:
         self.y:int = y
     
     def __repr__(self):
-        return f"(Sign Object at X = {self.y} and Y = {self.y} with content : {self.text})"
+        return f"(Sign Object at X = {self.x} and Y = {self.y} with content : {self.text})"
