@@ -1,4 +1,5 @@
 import numpy as np
+from enumeration import TileID, Channel
 
 class Tiles:
     '''
@@ -12,8 +13,8 @@ class Tiles:
     - channel 4 (0: none, 1: water, 2: lava, 3: honey, 8: shimmer) : liquid type
     - channel 5 (byte) : tile color
     - channel 6 (ushort | -1) : tile type, -1 for empty
-    - channel 7 (int16) : U value
-    - channel 8 (int16) : V value
+    - channel 7 (int16) : frameX value
+    - channel 8 (int16) : frameY value
     - channel 9 (ushort) : wall type
     - channel 10 (byte) : wall color
     - channel 11 (bool) : wire blue
@@ -27,7 +28,7 @@ class Tiles:
     '''
     def __init__(self, maxX, maxY):
         self.tileinfos = np.zeros((maxX, maxY, 19), np.int32)
-        self.tileinfos[:, :, 6] = -1 #Filling Air
+        self.tileinfos[:, :, Channel.TILETYPE] = TileID.Air #Filling Air
         self.__editmode = False
     
     #These just transposes tile information.

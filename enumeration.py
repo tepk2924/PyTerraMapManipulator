@@ -76,6 +76,7 @@ class Paint(IntEnum):
     NEGATIVE = 30
 
 class TileID(IntEnum):
+    Air = -1
     Dirt = 0
     Stone = 1
     Grass = 2
@@ -771,7 +772,7 @@ class TileID(IntEnum):
     RainbowMossBlock = 692
 
 class ItemID(IntEnum):
-    Empty = 0
+    NoItem = 0
     IronPickaxe = 1
     DirtBlock = 2
     StoneBlock = 3
@@ -6653,7 +6654,7 @@ class Chest2UV:
     VortexChest = (216, 0)
 
 class PrefixID(IntEnum):
-    Empty = 0
+    NoPrefix = 0
     Large = 1
     Massive = 2
     Dangerous = 3

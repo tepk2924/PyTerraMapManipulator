@@ -10,9 +10,13 @@ from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
 from pressureplate import PressurePlate
-from enumeration import BrickStyle, Liquid, Channel, GameMode, TileID
+from tileentity import TileEntity
+from enumeration import BrickStyle, Liquid, Channel, GameMode, TileID, TileEntityType, ItemID
 
 class WorldFileFormatException(Exception):
+    pass
+
+class WorldFileSaveError(Exception):
     pass
 
 class TerrariaWorld:
@@ -29,6 +33,7 @@ class TerrariaWorld:
         self.chests:list[Chest] = []
         self.signs:list[Sign] = []
         self.pressure_plates:list[PressurePlate] = []
+        self.tile_entities:list[TileEntity] = []
         self.__initializeotherdata()
 
     #SHOULE BE UPDATED UPON 1.4.5 ARRIVES
@@ -42,7 +47,7 @@ class TerrariaWorld:
 
     def __initializeotherdata(self):
         self.NPCMobs_data = b'\x00\x00\x00\x00\x01%\x00\x00\x00\x00\x00\x97\xe3G\x00\xa0\x16F\x00s\x1c\x00\x00]\x02\x00\x00\x01\x00\x00\x00\x00\x00\x00'
-        self.tile_entities_data = b'\x00\x00\x00\x00'
+        # self.tile_entities_data = b'\x00\x00\x00\x00'
         self.town_manager_data = b'\x00\x00\x00\x00'
         self.bestiary_data = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         self.creative_power_data = b'\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00\x00\x01\t\x00\x00\x01\n\x00\x00\x01\x0c\x00\x00\x00\x00\x00\x01\r\x00\x00\x00'
@@ -71,7 +76,7 @@ class TerrariaWorld:
             self.tileswide:int = 8400
         self.bottomworld:float = float(self.tileshigh*16)
         self.rightworld:float = float(self.tileswide*16)
-        self.gamemode:int = 0 #classic
+        self.gamemode:int = GameMode.CLASSIC #classic
         self.drunkworld:bool = False
         self.goodworld:bool = False
         self.tenthanniversaryworld:bool = False
@@ -423,10 +428,7 @@ class TerrariaWorld:
                 self.NPCMobs_data = f.read(NPCMobs_data_len)
                 if f.tell() != section_ptrs[5]:
                     raise WorldFileFormatException("Unexpected Position: Invalid Mob and NPC Data")
-                tile_entities_data_len = section_ptrs[6] - section_ptrs[5]
-                #As far as I know; this includes information about target dummy, item frame, logic sensor, display doll, weapons rack, hats rack, food platter, and pylons.
-                #Check test_tileentity.py to see how to parse tile_entity data. I will not implement this until 1.4.5 arrives.
-                self.tile_entities_data = f.read(tile_entities_data_len)
+                self.tile_entities = self.__LoadTileEntity(f)
                 if f.tell() != section_ptrs[6]:
                     raise WorldFileFormatException("Unexpected Position: Invalid Tile Entities Section")
             else:
@@ -1026,6 +1028,67 @@ class TerrariaWorld:
 
         return signs
 
+    def __LoadTileEntity(self, f:io.BufferedReader) -> list[TileEntity]:
+        count = self.__read_int32(f)
+        ret = []
+        for counter in range(count):
+            entity_type = self.__read_uint8(f)
+            entity_id = self.__read_int32(f)
+            posX = self.__read_int16(f)
+            posY = self.__read_int16(f)
+            entity = TileEntity(type=entity_type,
+                                entity_id=entity_id,
+                                posX=posX,
+                                posY=posY)
+            
+            if entity_type == TileEntityType.TrainingDummy:
+                entity.attribute["npc"] = self.__read_int16(f)
+            elif entity_type in [TileEntityType.ItemFrame,
+                                 TileEntityType.WeaponRack,
+                                 TileEntityType.FoodPlatter]:
+                entity.attribute["item"] = self.__LoadItem4TileEntity(f)
+            elif entity_type == TileEntityType.LogicSensor:
+                entity.attribute["logiccheck"] = self.__read_uint8(f)
+                entity.attribute["on"] = self.__read_boolean(f)
+            elif entity_type == TileEntityType.DisplayDoll:
+                item_bitmask = self.__read_uint8(f)
+                dye_bitmask = self.__read_uint8(f)
+                items:list[Item] = [Item() for _ in range(8)]
+                dyes:list[Item] = [Item() for _ in range(8)]
+                for idx in range(8):
+                    if item_bitmask & (1 << idx):
+                        items[idx] = self.__LoadItem4TileEntity(f)
+                for idx in range(8):
+                    if dye_bitmask & (1 << idx):
+                        dyes[idx] = self.__LoadItem4TileEntity(f)
+                entity.attribute["items"] = items
+                entity.attribute["dyes"] = dyes
+            elif entity_type == TileEntityType.HatRack:
+                slots_bitmask = self.__read_uint8(f)
+                items:list[Item] = [Item() for _ in range(2)]
+                dyes:list[Item] = [Item() for _ in range(2)]
+                for idx in range(2):
+                    if slots_bitmask & (1 << idx):
+                        items[idx] = self.__LoadItem4TileEntity(f)
+                for idx in range(2):
+                    if slots_bitmask & (1 << (idx + 2)):
+                        items[idx] = self.__LoadItem4TileEntity(f)
+                entity.attribute["items"] = items
+                entity.attribute["dyes"] = dyes
+            elif entity_type == TileEntityType.TeleportationPylon:
+                pass
+            else:
+                raise WorldFileFormatException("Unknown TileEntity Type.")
+            ret.append(entity)
+        return ret
+
+    def __LoadItem4TileEntity(self, f) -> Item:
+        netid = self.__read_int16(f)
+        prefix = self.__read_uint8(f)
+        stacksize = self.__read_int16(f)
+        return Item(netid=netid, prefix=prefix, stacksize=stacksize)
+
+
     def __LoadPressurePlate(self, f) -> list[PressurePlate]:
         count = self.__read_int32(f)
         ret = []
@@ -1117,15 +1180,13 @@ class TerrariaWorld:
             if self.version >= 140:
                 f.write(self.NPCMobs_data)
                 sectionpointers[5] = f.tell()
-                f.write(self.tile_entities_data)
-                sectionpointers[6] = f.tell()
+                sectionpointers[6] = self.__SaveTileEntity(f)
             else:
                 f.write(self.NPCMobs_data)
                 sectionpointers[5] = f.tell()
             
             if self.version >= 170:
-                self.__SavePressurePlate(f)
-                sectionpointers[7] = f.tell()
+                sectionpointers[7] = self.__SavePressurePlate(f)
             
             if self.version >= 189:
                 f.write(self.town_manager_data)
@@ -1700,7 +1761,7 @@ class TerrariaWorld:
         tiledata[headerindex] = header1
         return tiledata, dataindex, headerindex
 
-    def __SaveChests(self, f:io.BufferedWriter):
+    def __SaveChests(self, f:io.BufferedWriter) -> int:
         count = len(self.chests)
         self.__write_int16(f, count)
         MAXITEMS = 40
@@ -1723,7 +1784,7 @@ class TerrariaWorld:
         
         return f.tell()
     
-    def __SaveSigns(self, f:io.BufferedWriter):
+    def __SaveSigns(self, f:io.BufferedWriter) -> int:
         count = len(self.signs)
         self.__write_int16(f, count)
         for sign in self.signs:
@@ -1736,12 +1797,86 @@ class TerrariaWorld:
         
         return f.tell()
 
-    def __SavePressurePlate(self, f:io.BufferedWriter):
+    def __SaveTileEntity(self, f:io.BufferedWriter) -> int:
+        count = len(self.tile_entities)
+        self.__write_int32(f, count)
+        for counter in range(count):
+            entity = self.tile_entities[counter]
+            entity_type = entity.type
+            self.__write_uint8(f, entity_type)
+            entity_id = entity.entity_id
+            self.__write_int32(f, entity_id)
+            posX = entity.posX
+            self.__write_int16(f, posX)
+            posY = entity.posY
+            self.__write_int16(f, posY)
+            attribute = entity.attribute
+
+            if entity_type == TileEntityType.TrainingDummy:
+                self.__write_int16(f, attribute["npc"])
+            elif entity_type in [TileEntityType.ItemFrame,
+                                 TileEntityType.WeaponRack,
+                                 TileEntityType.FoodPlatter]:
+                self.__SaveItem4TileEntity(f, attribute["item"])
+            elif entity_type == TileEntityType.LogicSensor:
+                self.__write_uint8(f, attribute["logiccheck"])
+                self.__write_boolean(f, attribute["on"])
+            elif entity_type == TileEntityType.DisplayDoll:
+                item_bitmask = 0
+                dye_bitmask = 0
+                items:list[Item] = attribute["items"]
+                dyes:list[Item] = attribute["dyes"]
+                for idx in range(8):
+                    if not items[idx].is_empty():
+                        item_bitmask |= (1 << idx)
+                for idx in range(8):
+                    if not dyes[idx].is_empty():
+                        dye_bitmask |= (1 << idx)
+                self.__write_uint8(f, item_bitmask)
+                self.__write_uint8(f, dye_bitmask)
+                for idx in range(8):
+                    if item_bitmask & (1 << idx):
+                        self.__SaveItem4TileEntity(f, items[idx])
+                for idx in range(8):
+                    if dye_bitmask & (1 << idx):
+                        self.__SaveItem4TileEntity(f, dyes[idx])
+            elif entity_type == TileEntityType.HatRack:
+                slots_bitmask = 0
+                items:list[Item] = attribute["items"]
+                dyes:list[Item] = attribute["dyes"]
+                for idx in range(2):
+                    if not items[idx].is_empty():
+                        slots_bitmask |= (1 << idx)
+                for idx in range(2):
+                    if not dyes[idx].is_empty():
+                        slots_bitmask |= (1 << (idx + 2))
+                self.__write_uint8(f, slots_bitmask)
+                for idx in range(2):
+                    if slots_bitmask & (1 << idx):
+                        self.__SaveItem4TileEntity(f, items[idx])
+                for idx in range(2):
+                    if slots_bitmask & (1 << (idx + 2)):
+                        self.__SaveItem4TileEntity(f, dyes[idx])
+            elif entity_type == TileEntityType.TeleportationPylon:
+                pass
+            else:
+                raise WorldFileSaveError("Unknown TileEntity Type.")
+
+        return f.tell()
+
+    def __SaveItem4TileEntity(self, f:io.BufferedWriter, item:Item):
+        self.__write_int16(f, item.netid)
+        self.__write_uint8(f, item.prefix)
+        self.__write_int16(f, item.stacksize)
+
+    def __SavePressurePlate(self, f:io.BufferedWriter) -> int:
         count = len(self.pressure_plates)
         self.__write_int32(f, count)
         for plate in self.pressure_plates:
             self.__write_int32(f, plate.posX)
             self.__write_int32(f, plate.posY)
+        
+        return f.tell()
 
     def __SaveFooter(self, f:io.BufferedWriter):
         self.__write_boolean(f, True)

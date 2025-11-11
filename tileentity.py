@@ -1,3 +1,5 @@
+from enumeration import TileEntityType
+
 class TileEntity:
     def __init__(self, type, entity_id, posX, posY):
         self.type:int = type
@@ -7,4 +9,8 @@ class TileEntity:
         self.attribute:dict = {}
     
     def __repr__(self):
-        return f"(type = {self.type}, entity_id = {self.entity_id}, posX = {self.posX}, posY = {self.posY}, attribute = {self.attribute})"
+        if self.type in TileEntityType._value2member_map_:
+            typestr = TileEntityType._value2member_map_[self.type].name
+        else:
+            typestr = "Unknown Type"
+        return f"(type = {typestr}, id = {self.entity_id}, posX = {self.posX}, posY = {self.posY}, attribute = {self.attribute})"
