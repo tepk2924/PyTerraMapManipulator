@@ -1072,7 +1072,7 @@ class TerrariaWorld:
                         items[idx] = self.__LoadItem4TileEntity(f)
                 for idx in range(2):
                     if slots_bitmask & (1 << (idx + 2)):
-                        items[idx] = self.__LoadItem4TileEntity(f)
+                        dyes[idx] = self.__LoadItem4TileEntity(f)
                 entity.attribute["items"] = items
                 entity.attribute["dyes"] = dyes
             elif entity_type == TileEntityType.TeleportationPylon:
