@@ -23,8 +23,8 @@ class Channel(IntEnum):
     LIQUIDTYPE = 4
     TILECOLOR = 5
     TILETYPE = 6
-    U = 7
-    V = 8
+    FRAMEX = 7
+    FRAMEY = 8
     WALL = 9
     WALLCOLOR = 10
     WIREBLUE = 11

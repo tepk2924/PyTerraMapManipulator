@@ -18,8 +18,8 @@ queen_bee_mask_col = queen_bee_mask[1]
 
 for r, c in zip(queen_bee_mask_row, queen_bee_mask_col):
     world.tiles.tileinfos[r, c, Channel.TILETYPE] = -1
-    world.tiles.tileinfos[r, c, Channel.U] = 0
-    world.tiles.tileinfos[r, c, Channel.V] = 0
+    world.tiles.tileinfos[r, c, Channel.FRAMEX] = 0
+    world.tiles.tileinfos[r, c, Channel.FRAMEY] = 0
 
 world.tiles.exit_editmode()
 saving_path = input("saving queen bee larva-free world path : ")

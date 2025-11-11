@@ -887,14 +887,14 @@ class TerrariaWorld:
             single_tile[Channel.TILETYPE] = tiletype
 
             if not tileframeimportant[tiletype]:
-                single_tile[Channel.U] = 0
-                single_tile[Channel.V] = 0
+                single_tile[Channel.FRAMEX] = 0
+                single_tile[Channel.FRAMEY] = 0
             else:
-                single_tile[Channel.U] = self.__read_int16(f)
-                single_tile[Channel.V] = self.__read_int16(f)
+                single_tile[Channel.FRAMEX] = self.__read_int16(f)
+                single_tile[Channel.FRAMEY] = self.__read_int16(f)
 
                 if single_tile[Channel.TILETYPE] == 144: #reset timers
-                    single_tile[Channel.V] = 0
+                    single_tile[Channel.FRAMEY] = 0
             
             if header3 & 0b0000_1000:
                 single_tile[Channel.TILECOLOR] = self.__read_uint8(f)
@@ -1057,21 +1057,21 @@ class TerrariaWorld:
                      sprite_number:int,
                      sprite_rownum:int,
                      sprite_colnum:int,
-                     U_shift:int=0,
-                     V_shift:int=0):
+                     frame_X_shift:int=0,
+                     frame_Y_shift:int=0):
         self.tiles.tileinfos[row:row + sprite_rownum, col:col + sprite_colnum, Channel.TILETYPE] = sprite_number
         for r in range(sprite_rownum):
             for c in range(sprite_colnum):
-                self.tiles.tileinfos[row + r, col + c, Channel.U] = 18*c + U_shift
-                self.tiles.tileinfos[row + r, col + c, Channel.V] = 18*r + V_shift
+                self.tiles.tileinfos[row + r, col + c, Channel.FRAMEX] = 18*c + frame_X_shift
+                self.tiles.tileinfos[row + r, col + c, Channel.FRAMEY] = 18*r + frame_Y_shift
 
     def place_chest(self,
                     row:int,
                     col:int,
                     item_list:list[Item],
-                    U_shift:int=0,
-                    V_shift:int=0):
-        self.place_sprite(row, col, TileID.Containers, 2, 2, U_shift, V_shift)
+                    frame_X_shift:int=0,
+                    frame_Y_shift:int=0):
+        self.place_sprite(row, col, TileID.Containers, 2, 2, frame_X_shift, frame_Y_shift)
         chest = Chest(col, row, "")
         if len(item_list) > 40:
             item_list = item_list[:40]
@@ -1084,9 +1084,9 @@ class TerrariaWorld:
                            row:int,
                            col:int,
                            item_list:list[Item],
-                           U_shift:int=0,
-                           V_shift:int=0):
-        self.place_sprite(row, col, TileID.Containers2, 2, 2, U_shift, V_shift)
+                           frame_X_shift:int=0,
+                           frame_Y_shift:int=0):
+        self.place_sprite(row, col, TileID.Containers2, 2, 2, frame_X_shift, frame_Y_shift)
         chest = Chest(col, row, "")
         if len(item_list) > 40:
             item_list = item_list[:40]
@@ -1556,8 +1556,8 @@ class TerrariaWorld:
 
         TYPE = int(tile[Channel.TILETYPE])
         ISACTIVE = (TYPE != -1)
-        U = int(tile[Channel.U])
-        V = int(tile[Channel.V])
+        U = int(tile[Channel.FRAMEX])
+        V = int(tile[Channel.FRAMEY])
         TILECOLOR = int(tile[Channel.TILECOLOR])
         FULLBRIGHTBLOCK = bool(tile[Channel.FULLBRIGHTBLOCK])
         WALL = int(tile[Channel.WALL])
