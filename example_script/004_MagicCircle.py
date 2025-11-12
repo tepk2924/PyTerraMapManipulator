@@ -4,7 +4,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
-from enumeration import WallID, Channel
+from enumeration import WallID, Channel, Paint
 
 class vec2:
     def __init__(self, r, c):
@@ -150,12 +150,13 @@ result = np.where(result >= 1, 1, 0)
 
 color_scheme = np.int32((5*x + 3*y)/100)%12 + 13
 color_scheme = color_scheme*result
+color_scheme = np.where(color_scheme == 0, Paint.NEGATIVE, color_scheme)
 
 world = TerrariaWorld(world_size = "small")
 world.tiles.enter_editmode()
 
 COL = world.tileswide
-world.tiles.tileinfos[200:200 + SIZE, COL//2 - SIZE//2:COL//2 - SIZE//2 + SIZE, Channel.WALL] = result*(WallID.DiamondGemspark - WallID.Glass) + np.ones((SIZE, SIZE))*WallID.Glass
+world.tiles.tileinfos[200:200 + SIZE, COL//2 - SIZE//2:COL//2 - SIZE//2 + SIZE, Channel.WALL] = WallID.DiamondGemspark
 world.tiles.tileinfos[200:200 + SIZE, COL//2 - SIZE//2:COL//2 - SIZE//2 + SIZE, Channel.WALLCOLOR] = color_scheme
 world.tiles.exit_editmode()
 
