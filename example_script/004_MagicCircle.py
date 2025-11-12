@@ -72,15 +72,15 @@ ec_1 = [250, 75]
 ec_2 = [262.5, 78.5]
 ec_3 = [275, 82]
 for angle in np.linspace(0, np.pi, 6, False):
-    eclipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_1[0])**2 +
+    ellipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_1[0])**2 +
                        ((-x*np.sin(angle) + y*np.cos(angle))/ec_1[1])**2 <= 1, 1, 0)
-    result += get_boundary(eclipse)
-    eclipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_2[0])**2 +
+    result += get_boundary(ellipse)
+    ellipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_2[0])**2 +
                        ((-x*np.sin(angle) + y*np.cos(angle))/ec_2[1])**2 <= 1, 1, 0)
-    result += get_boundary(eclipse)
-    eclipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_3[0])**2 +
+    result += get_boundary(ellipse)
+    ellipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_3[0])**2 +
                        ((-x*np.sin(angle) + y*np.cos(angle))/ec_3[1])**2 <= 1, 1, 0)
-    result += get_boundary(eclipse)
+    result += get_boundary(ellipse)
 
 annulus_1 = np.where(270**2 <= x**2 + y**2, 1, 0)*np.where(x**2 + y**2 <= 290**2, 1, 0)
 annulus_2 = np.where(335**2 <= x**2 + y**2, 1, 0)*np.where(x**2 + y**2 <= 345**2, 1, 0)
