@@ -87,12 +87,13 @@ class TerrariaWorld:
         self.zenithworld:bool = False
         self.creationtime:int = -8584768520111393488
         self.moontype:int = 0
-        if world_size == "small":
-            self.treeX:list[int] = [1754, 4200, 4200]
-        elif world_size == "medium":
-            self.treeX:list[int] = [3194, 5443, 6400]
-        else:
-            self.treeX:list[int] = [3187, 3585, 5542]
+        self.treeX:list[int] = [0, 0, 0]
+        # if world_size == "small":
+        #     self.treeX:list[int] = [1754, 4200, 4200]
+        # elif world_size == "medium":
+        #     self.treeX:list[int] = [3194, 5443, 6400]
+        # else:
+        #     self.treeX:list[int] = [3187, 3585, 5542]
         self.treeX0:int = self.treeX[0]
         self.treeX1:int = self.treeX[1]
         self.treeX2:int = self.treeX[2]
@@ -100,12 +101,13 @@ class TerrariaWorld:
         self.treestyle1:int = 0
         self.treestyle2:int = 0
         self.treestyle3:int = 0
-        if world_size == "small":
-            self.cavebackX:list[int] = [2263, 4200, 4200]
-        elif world_size == "medium":
-            self.cavebackX:list[int] = [1291, 4147, 6400]
-        else:
-            self.cavebackX:list[int] = [3014, 4885, 7204]
+        self.cavebackX:list[int] = [0, 0, 0]
+        # if world_size == "small":
+        #     self.cavebackX:list[int] = [2263, 4200, 4200]
+        # elif world_size == "medium":
+        #     self.cavebackX:list[int] = [1291, 4147, 6400]
+        # else:
+        #     self.cavebackX:list[int] = [3014, 4885, 7204]
         self.cavebackX0:int = self.cavebackX[0]
         self.cavebackX1:int = self.cavebackX[1]
         self.cavebackX2:int = self.cavebackX[2]
@@ -117,17 +119,17 @@ class TerrariaWorld:
         self.junglebackstyle:int = 0
         self.hellbackstyle:int = 0
         if world_size == "small":
-            self.spawnX:int = 2104
+            self.spawnX:int = 2100
             self.spawnY:int = 204
             self.groundlevel:float = 314.0
             self.rocklevel:float = 416.0
         elif world_size == "medium":
-            self.spawnX:int = 3204
+            self.spawnX:int = 3200
             self.spawnY:int = 391
             self.groundlevel:float = 467.0
             self.rocklevel:float = 719.0
         else:
-            self.spawnX:int = 4197
+            self.spawnX:int = 4200
             self.spawnY:int = 427
             self.groundlevel:float = 532.0
             self.rocklevel:float = 904.0
@@ -136,15 +138,17 @@ class TerrariaWorld:
         self.moonphase:int = 0
         self.bloodmoon:bool = False
         self.iseclipse:bool = False
-        if world_size == "small":
-            self.dungeonX:int = 3441 #taken
-            self.dungeonY:int = 243 #taken
-        elif world_size == "medium":
-            self.dungeonX:int = 583 #taken
-            self.dungeonY:int = 312 #taken
-        else: #large
-            self.dungeonX:int = 7283 #taken
-            self.dungeonY:int = 605 #taken
+        self.dungeonX:int = 0
+        self.dungeonY:int = 0
+        # if world_size == "small":
+        #     self.dungeonX:int = 3441 #taken
+        #     self.dungeonY:int = 243 #taken
+        # elif world_size == "medium":
+        #     self.dungeonX:int = 583 #taken
+        #     self.dungeonY:int = 312 #taken
+        # else: #large
+        #     self.dungeonX:int = 7283 #taken
+        #     self.dungeonY:int = 605 #taken
         self.iscrimson:bool = False
         self.downedboss1eyeofcthulhu:bool = False
         self.downedboss2eaterofworlds:bool = False
