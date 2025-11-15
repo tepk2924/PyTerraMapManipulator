@@ -1,7 +1,7 @@
 import sys
 import os
 import numpy as np
-from IOutils import *
+from fileIOutils import *
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from terrariaworld import TerrariaWorld
 
-class WorldFileSaveError(Exception):
+class WorldSaveError(Exception):
     pass
 
 #TODO: maybe this should be updated upon 1.4.5?
@@ -725,7 +725,7 @@ def __SaveTileEntity(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
         elif entity_type == TileEntityType.TeleportationPylon:
             pass
         else:
-            raise WorldFileSaveError("Unknown TileEntity Type.")
+            raise WorldSaveError("Unknown TileEntity Type.")
 
     return f.tell()
 

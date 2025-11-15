@@ -1,14 +1,8 @@
-import struct
-import io
 import uuid
-import numpy as np
-import sys
-import os
 import random
 
 import load_util
 import save_util
-from IOutils import *
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
@@ -16,13 +10,11 @@ from pressureplate import PressurePlate
 from tileentity import TileEntity
 from enumeration import BrickStyle, Liquid, Channel, GameMode, TileID, TileEntityType, ItemID
 
-class WorldFileSaveError(Exception):
-    pass
-
 class TerrariaWorld:
     #At least making these works for 1.4.4.....
     def __init__(self,
                  world_size:str | tuple = "large"):
+        #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
         self.version:int = 279 #1.4.4
         self.ischinese:bool = False
         self.filerevision:int = 0
@@ -257,8 +249,7 @@ class TerrariaWorld:
     def load_world(self, *args):
         load_util.load_world(self, *args)
 
-    def save_world(self,
-                   save_file_path:str=None):
+    def save_world(self, save_file_path:str=None):
         save_util.save_world(self, save_file_path=save_file_path)
 
     def place_sprite(self,
@@ -276,7 +267,7 @@ class TerrariaWorld:
                 self.tiles.tileinfos[row + r, col + c, Channel.FRAMEX] = 18*c + frame_X_shift
                 self.tiles.tileinfos[row + r, col + c, Channel.FRAMEY] = 18*r + frame_Y_shift
 
-    def place_chest(self,
+    def place_chest_group1(self,
                     row:int,
                     col:int,
                     item_list:list[Item],

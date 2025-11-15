@@ -6581,7 +6581,7 @@ class WallID(IntEnum):
     RainbowMossBlockWall = 346
 
 #TODO: maybe this should be updated upon 1.4.5?
-class ChestUV:
+class ChestFrameXY:
     Barrel = (180, 0)
     BlueDungeonChest = (1404, 0)
     BlueDungeonChestLocked = (1440, 0)
@@ -6639,7 +6639,7 @@ class ChestUV:
     WoodenChest = (0, 0)
 
 #TODO: maybe this should be updated upon 1.4.5?
-class Chest2UV:
+class Chest2FrameXY:
     AshWoodChest = (576, 0)
     BalloonChest = (540, 0)
     BambooChest = (396, 0)

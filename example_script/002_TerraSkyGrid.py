@@ -4,7 +4,7 @@ import random
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
-from enumeration import GameMode, Channel, Liquid, TileID, ItemID, WallID, ChestUV, Chest2UV
+from enumeration import GameMode, Channel, Liquid, TileID, ItemID, WallID, ChestFrameXY, Chest2FrameXY
 from chest import Item
 
 world = TerrariaWorld()
@@ -50,8 +50,8 @@ world.tiles.tileinfos[1100:1158, 5800:5900, Channel.TILETYPE] = -1 #Placing Air
 world.tiles.tileinfos[1100:1160, 5800:5900, Channel.WALL] = WallID.LihzahrdBrickUnsafe #Lih Wall (Mob spawnable)
 world.tiles.tileinfos[1158:1160, 5800:5900, Channel.TILETYPE] = TileID.LihzahrdBrick #Placing Lihzarhd Brick
 world.place_sprite(1156, 5850, TileID.Lihzahrd, 2, 3) #Placing Lih Altar
-world.place_chest(1156, 5830, [Item(stacksize=10, netid=ItemID.LihzahrdPowerCell)], 576, 0) #Placing Chest with 10 Lih Cell
-world.place_chest(1156, 5870, [Item(stacksize=10, netid=ItemID.LihzahrdPowerCell)], 576, 0) #Placing Chest with 10 Lih Cell
+world.place_chest_group1(1156, 5830, [Item(stacksize=10, netid=ItemID.LihzahrdPowerCell)], 576, 0) #Placing Chest with 10 Lih Cell
+world.place_chest_group1(1156, 5870, [Item(stacksize=10, netid=ItemID.LihzahrdPowerCell)], 576, 0) #Placing Chest with 10 Lih Cell
 states[220:232, 1160:1180] = 1
 
 #To spawn-proof
@@ -157,7 +157,7 @@ while True:
     c = random.randint(50, COL - 51)
     if states[r, c] != 1:
         break
-world.place_chest(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.VampireKnives)], *ChestUV.CrimsonChestLocked) #Locked Crimson Chest with Vampire Knives
+world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.VampireKnives)], *ChestFrameXY.CrimsonChestLocked) #Locked Crimson Chest with Vampire Knives
 world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
@@ -165,7 +165,7 @@ while True:
     c = random.randint(50, COL - 51)
     if states[r, c] != 1:
         break
-world.place_chest(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.StaffoftheFrostHydra)], *ChestUV.FrozenChestLocked) #Locked Ice Chest with Frost Hydra Staff
+world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.StaffoftheFrostHydra)], *ChestFrameXY.FrozenChestLocked) #Locked Ice Chest with Frost Hydra Staff
 world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
@@ -173,7 +173,7 @@ while True:
     c = random.randint(50, COL - 51)
     if states[r, c] != 1:
         break
-world.place_chest(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.RainbowGun)], *ChestUV.HallowedChestLocked) #Locked Hallow Chest with Rainbow Gun
+world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.RainbowGun)], *ChestFrameXY.HallowedChestLocked) #Locked Hallow Chest with Rainbow Gun
 world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
@@ -181,7 +181,7 @@ while True:
     c = random.randint(50, COL - 51)
     if states[r, c] != 1:
         break
-world.place_chest(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.PiranhaGun)], *ChestUV.JungleChestLocked) #Locked Jungle Chest with Piranha Gun
+world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.PiranhaGun)], *ChestFrameXY.JungleChestLocked) #Locked Jungle Chest with Piranha Gun
 world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
@@ -189,7 +189,7 @@ while True:
     c = random.randint(50, COL - 51)
     if states[r, c] != 1:
         break
-world.place_chest(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.ScourgeoftheCorruptor)], *ChestUV.CorruptionChestLocked) #Locked Corruption Chest with Scourge of the Corrupter
+world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.ScourgeoftheCorruptor)], *ChestFrameXY.CorruptionChestLocked) #Locked Corruption Chest with Scourge of the Corrupter
 world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 while True:
@@ -197,7 +197,7 @@ while True:
     c = random.randint(50, COL - 51)
     if states[r, c] != 1:
         break
-world.place_chest_group2(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.StormTigerStaff)], *Chest2UV.DesertChestLocked) #Locked Desert Chest with Desert Tiger Staff
+world.place_chest_group2(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.StormTigerStaff)], *Chest2FrameXY.DesertChestLocked) #Locked Desert Chest with Desert Tiger Staff
 world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 
