@@ -75,6 +75,7 @@ class Paint(IntEnum):
     SHADOW = 29
     NEGATIVE = 30
 
+#TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
 class TileID(IntEnum):
     Air = -1
     Dirt = 0
@@ -771,6 +772,7 @@ class TileID(IntEnum):
     VioletMossBlock = 691
     RainbowMossBlock = 692
 
+#TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
 class ItemID(IntEnum):
     NoItem = 0
     IronPickaxe = 1
@@ -6229,6 +6231,7 @@ class ItemID(IntEnum):
     DontHurtNatureBookInactive = 5454
     DontHurtComboBookInactive = 5455
 
+#TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
 class WallID(IntEnum):
     Stone = 1
     DirtUnsafe = 2
@@ -6577,6 +6580,7 @@ class WallID(IntEnum):
     VioletMossBlockWall = 345
     RainbowMossBlockWall = 346
 
+#TODO: maybe this should be updated upon 1.4.5?
 class ChestUV:
     Barrel = (180, 0)
     BlueDungeonChest = (1404, 0)
@@ -6634,6 +6638,7 @@ class ChestUV:
     WebCoveredChest = (540, 0)
     WoodenChest = (0, 0)
 
+#TODO: maybe this should be updated upon 1.4.5?
 class Chest2UV:
     AshWoodChest = (576, 0)
     BalloonChest = (540, 0)
@@ -6653,6 +6658,7 @@ class Chest2UV:
     StardustChest = (288, 0)
     VortexChest = (216, 0)
 
+#TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
 class PrefixID(IntEnum):
     NoPrefix = 0
     Large = 1
@@ -6741,6 +6747,7 @@ class PrefixID(IntEnum):
     Unreal = 82
     Mythical = 83
 
+#TODO: maybe this should be updated upon 1.4.5?
 class TileEntityType(IntEnum):
     TrainingDummy = 0
     ItemFrame = 1

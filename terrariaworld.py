@@ -51,6 +51,7 @@ class TerrariaWorld:
         self.bestiary_data = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         self.creative_power_data = b'\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00\x00\x01\t\x00\x00\x01\n\x00\x00\x01\x0c\x00\x00\x00\x00\x00\x01\r\x00\x00\x00'
 
+    #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __HeaderFlags_init(self,
                            world_size:str):
         self.title:str = None
@@ -253,7 +254,7 @@ class TerrariaWorld:
         self.fastforwardtimetodusk:bool = False
         self.moondialcooldown:bool = False
 
-    #TODO: maybe updated upon 1.4.5 arrives
+    #TODO: maybe this should be updated upon 1.4.5?
     def __getsectioncount(self):
         return 11 if self.version >= 220 else 10
 
@@ -356,6 +357,7 @@ class TerrariaWorld:
         self.__write_7bit_encoded_int(f, len(data))
         f.write(data)
 
+    #TODO: maybe this should be updated upon 1.4.5?
     def load_world(self,
                    file_path=None,
                    chest_verbose=False,
@@ -440,6 +442,7 @@ class TerrariaWorld:
             
             self.__LoadFooter(f)            
 
+    #TODO: maybe this should be updated upon 1.4.5?
     def __LoadSectionHeader(self, f:io.BufferedReader):
         #loading section header
         if self.version >= 140:
@@ -475,6 +478,7 @@ class TerrariaWorld:
                 booleans[idx] = True
         return booleans
     
+    #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __LoadHeaderFlags(self, f:io.BufferedReader):
         self.title = self.__read_string(f)
 
@@ -829,6 +833,7 @@ class TerrariaWorld:
         sys.stdout.write(f"loading tile {total_tiles}/{total_tiles} done... [{"="*barlen}]\n")
         return tiles
 
+    #TODO: maybe this should be updated upon 1.4.5?
     def __deserializetiledata(self, f, tileframeimportant, version) -> tuple[list, int]:
         single_tile = [0]*19
         tiletype = -1
@@ -1147,6 +1152,7 @@ class TerrariaWorld:
         item_frame_entity.attribute["item"] = item
         self.tile_entities.append(item_frame_entity)
 
+    #TODO: maybe this should be updated upon 1.4.5?
     def save_world(self,
                    save_file_path:str=None):
         if save_file_path is None:
@@ -1155,7 +1161,7 @@ class TerrariaWorld:
             save_file_path = save_file_path + ".wld"
 
         if self.title is None:
-            self.title = os.path.basename(save_file_path)[:-4]
+            self.title = os.path.splitext(os.path.basename(save_file_path))[0]
 
         sectionpointers = [None]*self.__getsectioncount()
 
@@ -1192,6 +1198,7 @@ class TerrariaWorld:
             self.__SaveFooter(f)
             self.__UpdateSectionPointers(f, sectionpointers)
 
+    #TODO: maybe this should be updated upon 1.4.5?
     def __SaveSectionHeader(self, f:io.BufferedWriter, tileframeimportant) -> int:
         self.__write_uint32(f, self.version)
 
@@ -1237,6 +1244,7 @@ class TerrariaWorld:
         if bitmask != 1:
             self.__write_uint8(f, data)
     
+    #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __SaveHeaderFlags(self, f:io.BufferedWriter) -> int:
         self.__write_string(f, self.title)
 
@@ -1591,6 +1599,7 @@ class TerrariaWorld:
         sys.stdout.write(f"saving tile {total_tiles}/{total_tiles} done... [{"="*barlen}]\n")
         return f.tell()
     
+    #TODO: maybe this should be updated upon 1.4.5?
     def __serializeTilaData(self,
                             tile:np.ndarray) -> tuple[list[int], int, int]:
         size = 16 if self.version >= 269 else 15 if self.version > 22 else 13
