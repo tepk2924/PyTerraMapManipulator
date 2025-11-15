@@ -6,6 +6,7 @@ import numpy as np
 import sys
 import os
 import random
+from IOutils import *
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
@@ -258,105 +259,6 @@ class TerrariaWorld:
     def __getsectioncount(self):
         return 11 if self.version >= 220 else 10
 
-    def __read_boolean(self, f:io.BufferedReader) -> bool:
-        return f.read(1) != b'\x00'
-
-    def __read_int8(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<b', f.read(1))[0]
-
-    def __read_uint8(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<B', f.read(1))[0]
-
-    def __read_int16(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<h', f.read(2))[0]
-    
-    def __read_uint16(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<H', f.read(2))[0]
-
-    def __read_int32(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<i', f.read(4))[0]
-    
-    def __read_uint32(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<I', f.read(4))[0]
-    
-    def __read_int64(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<q', f.read(8))[0]
-    
-    def __read_uint64(self, f:io.BufferedReader) -> int:
-        return struct.unpack('<Q', f.read(8))[0]
-
-    def __read_single(self, f:io.BufferedReader) -> float:
-        return struct.unpack('<f', f.read(4))[0]
-
-    def __read_double(self, f:io.BufferedReader) -> float:
-        return struct.unpack('<d', f.read(8))[0]
-
-    def __write_boolean(self, f:io.BufferedWriter, data:bool):
-        f.write(struct.pack('?', data))
-    
-    def __write_int8(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<b', data))
-    
-    def __write_uint8(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<B', data))
-    
-    def __write_int16(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<h', data))
-
-    def __write_uint16(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<H', data))
-    
-    def __write_int32(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<i', data))
-    
-    def __write_uint32(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<I', data))
-    
-    def __write_int64(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<q', data))
-    
-    def __write_uint64(self, f:io.BufferedWriter, data:int):
-        f.write(struct.pack('<Q', data))
-    
-    def __write_single(self, f:io.BufferedWriter, data:float):
-        f.write(struct.pack('<f', data))
-    
-    def __write_double(self, f:io.BufferedWriter, data:float):
-        f.write(struct.pack('<d', data))
-
-    def __read_7bit_encoded_int(self, f): #THX chatgpt
-        result = 0
-        shift = 0
-        while True:
-            b = f.read(1)
-            if not b:
-                raise EOFError("Unexpected EOF")
-            b = b[0]
-            result |= (b & 0x7F) << shift
-            if b & 0x80 == 0:
-                break
-            shift += 7
-        return result
-
-    def __write_7bit_encoded_int(self, f, value): #THX chatgpt
-        while True:
-            b = value & 0x7F
-            value >>= 7
-            if value:
-                f.write(bytes([b | 0x80]))
-            else:
-                f.write(bytes([b]))
-                break
-
-    def __read_string(self, f) -> str: #THX chatgpt
-        strlen = self.__read_7bit_encoded_int(f)
-        return f.read(strlen).decode('utf-8')
-    
-    def __write_string(self, f, s: str): #THX chatgpt
-        data = s.encode('utf-8')
-        self.__write_7bit_encoded_int(f, len(data))
-        f.write(data)
-
     #TODO: maybe this should be updated upon 1.4.5?
     def load_world(self,
                    file_path=None,
@@ -368,7 +270,7 @@ class TerrariaWorld:
         if file_path is None:
             file_path = input("Map file path : ")
         with open(file_path, "rb") as f:
-            self.version = self.__read_uint32(f)
+            self.version = read_uint32(f)
 
             tileframeimportant, section_ptrs = self.__LoadSectionHeader(f)
             self.tileframeimportant = tileframeimportant
@@ -451,20 +353,20 @@ class TerrariaWorld:
             f.seek(tmp)
             headerformat = f.read(7).decode('ascii')
             filetype = f.read(1)
-            self.filerevision = self.__read_uint32(f)
-            flags = self.__read_uint64(f)
+            self.filerevision = read_uint32(f)
+            flags = read_uint64(f)
             self.isfavorite = ((flags & 1) == 1)
-        sectioncount = self.__read_int16(f)
+        sectioncount = read_int16(f)
         section_ptrs = []
         for _ in range(sectioncount):
-            section_ptrs.append(self.__read_int32(f))
+            section_ptrs.append(read_int32(f))
         
         tileframeimportant = self.__ReadBitArray(f)
         return tileframeimportant, section_ptrs
     
     def __ReadBitArray(self, f:io.BufferedReader):
         #read bit array
-        bitarraylength = self.__read_int16(f)
+        bitarraylength = read_int16(f)
         data = 0
         bitmask = 128
         booleans = [False]*bitarraylength
@@ -472,7 +374,7 @@ class TerrariaWorld:
             if bitmask != 128:
                 bitmask = bitmask << 1
             else:
-                data = self.__read_uint8(f)
+                data = read_uint8(f)
                 bitmask = 1
             if data & bitmask == bitmask:
                 booleans[idx] = True
@@ -480,15 +382,15 @@ class TerrariaWorld:
     
     #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __LoadHeaderFlags(self, f:io.BufferedReader):
-        self.title = self.__read_string(f)
+        self.title = read_string(f)
 
         if self.version >= 179:
             if self.version == 179:
                 #TODO: ???
-                self.seed = str(self.__read_int32(f))
+                self.seed = str(read_int32(f))
             else:
-                self.seed = self.__read_string(f)
-            self.worldgenversion = self.__read_uint64(f)
+                self.seed = read_string(f)
+            self.worldgenversion = read_uint64(f)
         else:
             self.seed = ""
         if self.version >= 181:
@@ -496,238 +398,238 @@ class TerrariaWorld:
         else:
             self.worldguid = uuid.uuid1()
 
-        self.worldid = self.__read_int32(f)
-        self.leftworld = float(self.__read_int32(f))
-        self.rightworld = float(self.__read_int32(f))
-        self.topworld = float(self.__read_int32(f))
-        self.bottomworld = float(self.__read_int32(f))
-        self.tileshigh = self.__read_int32(f)
-        self.tileswide = self.__read_int32(f)
+        self.worldid = read_int32(f)
+        self.leftworld = float(read_int32(f))
+        self.rightworld = float(read_int32(f))
+        self.topworld = float(read_int32(f))
+        self.bottomworld = float(read_int32(f))
+        self.tileshigh = read_int32(f)
+        self.tileswide = read_int32(f)
 
         if self.version >= 209:
-            self.gamemode = self.__read_int32(f)
+            self.gamemode = read_int32(f)
 
-            if self.version >= 222: self.drunkworld = self.__read_boolean(f)
-            if self.version >= 227: self.goodworld = self.__read_boolean(f)
-            if self.version >= 238: self.tenthanniversaryworld = self.__read_boolean(f)
-            if self.version >= 239: self.dontstarveworld = self.__read_boolean(f)
-            if self.version >= 241: self.notthebeesworld = self.__read_boolean(f)
-            if self.version >= 249: self.remixworld = self.__read_boolean(f)
-            if self.version >= 266: self.notrapworld = self.__read_boolean(f)
-            self.zenithworld = (self.remixworld and self.drunkworld) if self.version < 267 else self.__read_boolean(f)
+            if self.version >= 222: self.drunkworld = read_boolean(f)
+            if self.version >= 227: self.goodworld = read_boolean(f)
+            if self.version >= 238: self.tenthanniversaryworld = read_boolean(f)
+            if self.version >= 239: self.dontstarveworld = read_boolean(f)
+            if self.version >= 241: self.notthebeesworld = read_boolean(f)
+            if self.version >= 249: self.remixworld = read_boolean(f)
+            if self.version >= 266: self.notrapworld = read_boolean(f)
+            self.zenithworld = (self.remixworld and self.drunkworld) if self.version < 267 else read_boolean(f)
         elif self.version == 208:
-            self.gamemode = 2 if self.__read_boolean(f) else 0
+            self.gamemode = 2 if read_boolean(f) else 0
         elif self.version == 112:
-            self.gamemode = 1 if self.__read_boolean(f) else 0
+            self.gamemode = 1 if read_boolean(f) else 0
         else:
             self.gamemode = 0
 
-        self.creationtime = self.__read_int64(f) if self.version >= 141 else int(datetime.datetime.now().timestamp())
+        self.creationtime = read_int64(f) if self.version >= 141 else int(datetime.datetime.now().timestamp())
 
-        self.moontype = self.__read_uint8(f)
-        self.treeX[0] = self.__read_int32(f)
-        self.treeX[1] = self.__read_int32(f)
-        self.treeX[2] = self.__read_int32(f)
+        self.moontype = read_uint8(f)
+        self.treeX[0] = read_int32(f)
+        self.treeX[1] = read_int32(f)
+        self.treeX[2] = read_int32(f)
         self.treeX0 = self.treeX[0]
         self.treeX1 = self.treeX[1]
         self.treeX2 = self.treeX[2]
-        self.treestyle0 = self.__read_int32(f)
-        self.treestyle1 = self.__read_int32(f)
-        self.treestyle2 = self.__read_int32(f)
-        self.treestyle3 = self.__read_int32(f)
-        self.cavebackX[0] = self.__read_int32(f)
-        self.cavebackX[1] = self.__read_int32(f)
-        self.cavebackX[2] = self.__read_int32(f)
+        self.treestyle0 = read_int32(f)
+        self.treestyle1 = read_int32(f)
+        self.treestyle2 = read_int32(f)
+        self.treestyle3 = read_int32(f)
+        self.cavebackX[0] = read_int32(f)
+        self.cavebackX[1] = read_int32(f)
+        self.cavebackX[2] = read_int32(f)
         self.cavebackX0 = self.cavebackX[0]
         self.cavebackX1 = self.cavebackX[1]
         self.cavebackX2 = self.cavebackX[2]
-        self.cavebackstyle0 = self.__read_int32(f)
-        self.cavebackstyle1 = self.__read_int32(f)
-        self.cavebackstyle2 = self.__read_int32(f)
-        self.cavebackstyle3 = self.__read_int32(f)
-        self.icebackstyle = self.__read_int32(f)
-        self.junglebackstyle = self.__read_int32(f)
-        self.hellbackstyle = self.__read_int32(f)
+        self.cavebackstyle0 = read_int32(f)
+        self.cavebackstyle1 = read_int32(f)
+        self.cavebackstyle2 = read_int32(f)
+        self.cavebackstyle3 = read_int32(f)
+        self.icebackstyle = read_int32(f)
+        self.junglebackstyle = read_int32(f)
+        self.hellbackstyle = read_int32(f)
 
-        self.spawnX = self.__read_int32(f)
-        self.spawnY = self.__read_int32(f)
-        self.groundlevel = self.__read_double(f)
-        self.rocklevel = self.__read_double(f)
-        self.time = self.__read_double(f)
-        self.daytime = self.__read_boolean(f)
-        self.moonphase = self.__read_int32(f)
-        self.bloodmoon = self.__read_boolean(f)
-        self.iseclipse = self.__read_boolean(f)
-        self.dungeonX = self.__read_int32(f)
-        self.dungeonY = self.__read_int32(f)
+        self.spawnX = read_int32(f)
+        self.spawnY = read_int32(f)
+        self.groundlevel = read_double(f)
+        self.rocklevel = read_double(f)
+        self.time = read_double(f)
+        self.daytime = read_boolean(f)
+        self.moonphase = read_int32(f)
+        self.bloodmoon = read_boolean(f)
+        self.iseclipse = read_boolean(f)
+        self.dungeonX = read_int32(f)
+        self.dungeonY = read_int32(f)
 
-        self.iscrimson = self.__read_boolean(f)
+        self.iscrimson = read_boolean(f)
 
-        self.downedboss1eyeofcthulhu = self.__read_boolean(f)
-        self.downedboss2eaterofworlds = self.__read_boolean(f)
-        self.downedboss3skeletron = self.__read_boolean(f)
-        self.downedqueenbee = self.__read_boolean(f)
-        self.downedmechboss1thedestroyer = self.__read_boolean(f)
-        self.downedmechboss2thetwins = self.__read_boolean(f)
-        self.downedmechboss3skeletronprime = self.__read_boolean(f)
-        self.downedmechbossany = self.__read_boolean(f)
-        self.downedplantboss = self.__read_boolean(f)
-        self.downedgolemboss = self.__read_boolean(f)
+        self.downedboss1eyeofcthulhu = read_boolean(f)
+        self.downedboss2eaterofworlds = read_boolean(f)
+        self.downedboss3skeletron = read_boolean(f)
+        self.downedqueenbee = read_boolean(f)
+        self.downedmechboss1thedestroyer = read_boolean(f)
+        self.downedmechboss2thetwins = read_boolean(f)
+        self.downedmechboss3skeletronprime = read_boolean(f)
+        self.downedmechbossany = read_boolean(f)
+        self.downedplantboss = read_boolean(f)
+        self.downedgolemboss = read_boolean(f)
 
-        if self.version >= 118: self.downedslimekingboss = self.__read_boolean(f)
+        if self.version >= 118: self.downedslimekingboss = read_boolean(f)
 
-        self.savedgoblin = self.__read_boolean(f)
-        self.savedwizard = self.__read_boolean(f)
-        self.savedmech = self.__read_boolean(f)
-        self.downedgoblins = self.__read_boolean(f)
-        self.downedclown = self.__read_boolean(f)
-        self.downedfrost = self.__read_boolean(f)
-        self.downedpirates = self.__read_boolean(f)
+        self.savedgoblin = read_boolean(f)
+        self.savedwizard = read_boolean(f)
+        self.savedmech = read_boolean(f)
+        self.downedgoblins = read_boolean(f)
+        self.downedclown = read_boolean(f)
+        self.downedfrost = read_boolean(f)
+        self.downedpirates = read_boolean(f)
 
-        self.shadoworbsmashed = self.__read_boolean(f)
-        self.spawnmeteor = self.__read_boolean(f)
-        self.shadoworbcount = self.__read_uint8(f)
-        self.altarcount = self.__read_int32(f)
-        self.hardmode = self.__read_boolean(f)
-        if self.version >= 257: self.partyofdoom = self.__read_boolean(f)
-        self.invasiondelay = self.__read_int32(f)
-        self.invasionsize = self.__read_int32(f)
-        self.invasiontype = self.__read_int32(f)
-        self.invasionX = self.__read_double(f)
-        if self.version >= 118: self.slimeraintime = self.__read_double(f)
-        if self.version >= 113: self.sundialcooldown = self.__read_uint8(f)
+        self.shadoworbsmashed = read_boolean(f)
+        self.spawnmeteor = read_boolean(f)
+        self.shadoworbcount = read_uint8(f)
+        self.altarcount = read_int32(f)
+        self.hardmode = read_boolean(f)
+        if self.version >= 257: self.partyofdoom = read_boolean(f)
+        self.invasiondelay = read_int32(f)
+        self.invasionsize = read_int32(f)
+        self.invasiontype = read_int32(f)
+        self.invasionX = read_double(f)
+        if self.version >= 118: self.slimeraintime = read_double(f)
+        if self.version >= 113: self.sundialcooldown = read_uint8(f)
         
-        self.israining = self.__read_boolean(f)
-        self.tempraintime = self.__read_int32(f)
-        self.tempmaxrain = self.__read_single(f)
-        self.savedoretierscobalt = self.__read_int32(f)
-        self.savedoretiersmythril = self.__read_int32(f)
-        self.savedoretiersadamantitie = self.__read_int32(f)
-        self.bgtree = self.__read_uint8(f)
-        self.bgcorruption = self.__read_uint8(f)
-        self.bgjungle = self.__read_uint8(f)
-        self.bgsnow = self.__read_uint8(f)
-        self.bghallow = self.__read_uint8(f)
-        self.bgcrimson = self.__read_uint8(f)
-        self.bgdesert = self.__read_uint8(f)
-        self.bgocean = self.__read_uint8(f)
-        self.cloudbgactive = float(self.__read_int32(f))
-        self.numclouds = self.__read_int16(f)
-        self.windspeedset = self.__read_single(f)
+        self.israining = read_boolean(f)
+        self.tempraintime = read_int32(f)
+        self.tempmaxrain = read_single(f)
+        self.savedoretierscobalt = read_int32(f)
+        self.savedoretiersmythril = read_int32(f)
+        self.savedoretiersadamantitie = read_int32(f)
+        self.bgtree = read_uint8(f)
+        self.bgcorruption = read_uint8(f)
+        self.bgjungle = read_uint8(f)
+        self.bgsnow = read_uint8(f)
+        self.bghallow = read_uint8(f)
+        self.bgcrimson = read_uint8(f)
+        self.bgdesert = read_uint8(f)
+        self.bgocean = read_uint8(f)
+        self.cloudbgactive = float(read_int32(f))
+        self.numclouds = read_int16(f)
+        self.windspeedset = read_single(f)
         
         if self.version < 95: return
 
-        for _ in range(self.__read_int32(f)):
-            self.anglers.append(self.__read_string(f))
+        for _ in range(read_int32(f)):
+            self.anglers.append(read_string(f))
         
         if self.version < 99: return
 
-        self.savedangler = self.__read_boolean(f)
+        self.savedangler = read_boolean(f)
 
         if self.version < 101: return
 
-        self.anglerquest = self.__read_int32(f)
+        self.anglerquest = read_int32(f)
 
         if self.version < 104: return
 
-        self.savedstylist = self.__read_boolean(f)
+        self.savedstylist = read_boolean(f)
 
         if self.version >= 140:
-            self.savedtaxcollector = self.__read_boolean(f)
+            self.savedtaxcollector = read_boolean(f)
         if self.version >= 201:
-            self.savedgolfer = self.__read_boolean(f)
+            self.savedgolfer = read_boolean(f)
         if self.version >= 107:
-            self.invasionsizestart = self.__read_int32(f)
-        self.cultistdelay = self.__read_int32(f) if self.version >= 108 else 86400
+            self.invasionsizestart = read_int32(f)
+        self.cultistdelay = read_int32(f) if self.version >= 108 else 86400
 
         if self.version < 109: return
 
         self.killedmobs.clear()
-        number_of_mobs = self.__read_int16(f)
+        number_of_mobs = read_int16(f)
         for _ in range(number_of_mobs):
-            self.killedmobs.append(self.__read_int32(f))
+            self.killedmobs.append(read_int32(f))
         
         if self.version < 128: return
 
         if self.version >= 140:
-            self.fastforwardtime = self.__read_boolean(f)
+            self.fastforwardtime = read_boolean(f)
         
         if self.version < 131: return
 
-        self.downedfishron = self.__read_boolean(f)
+        self.downedfishron = read_boolean(f)
         
         if self.version >= 140:
-            self.downedmartians = self.__read_boolean(f)
-            self.downedlunaticcultist = self.__read_boolean(f)
-            self.downedmoonlord = self.__read_boolean(f)
+            self.downedmartians = read_boolean(f)
+            self.downedlunaticcultist = read_boolean(f)
+            self.downedmoonlord = read_boolean(f)
         
-        self.downedhalloweenking = self.__read_boolean(f)
-        self.downedhalloweentree = self.__read_boolean(f)
-        self.downedchristmasqueen = self.__read_boolean(f)
-        self.downedsanta = self.__read_boolean(f)
-        self.downedchristmastree = self.__read_boolean(f)
+        self.downedhalloweenking = read_boolean(f)
+        self.downedhalloweentree = read_boolean(f)
+        self.downedchristmasqueen = read_boolean(f)
+        self.downedsanta = read_boolean(f)
+        self.downedchristmastree = read_boolean(f)
 
         if self.version < 140: return
 
-        self.downedcelestialsolar = self.__read_boolean(f)
-        self.downedcelestialvortex = self.__read_boolean(f)
-        self.downedcelestialnebula = self.__read_boolean(f)
-        self.downedcelestialstardust = self.__read_boolean(f)
-        self.celestialsolaractive = self.__read_boolean(f)
-        self.celestialvortexactive = self.__read_boolean(f)
-        self.celestialnebulaactive = self.__read_boolean(f)
-        self.celestialstardustactive = self.__read_boolean(f)
-        self.apocalypse = self.__read_boolean(f)
+        self.downedcelestialsolar = read_boolean(f)
+        self.downedcelestialvortex = read_boolean(f)
+        self.downedcelestialnebula = read_boolean(f)
+        self.downedcelestialstardust = read_boolean(f)
+        self.celestialsolaractive = read_boolean(f)
+        self.celestialvortexactive = read_boolean(f)
+        self.celestialnebulaactive = read_boolean(f)
+        self.celestialstardustactive = read_boolean(f)
+        self.apocalypse = read_boolean(f)
 
         if self.version >= 170:
-            self.partymanual = self.__read_boolean(f)
-            self.partygenuine = self.__read_boolean(f)
-            self.partycooldown = self.__read_int32(f)
-            numparty = self.__read_int32(f)
+            self.partymanual = read_boolean(f)
+            self.partygenuine = read_boolean(f)
+            self.partycooldown = read_int32(f)
+            numparty = read_int32(f)
             for _ in range(numparty):
-                self.partyingnpcs.append(self.__read_int32(f))
+                self.partyingnpcs.append(read_int32(f))
         
         if self.version >= 174:
-            self.sandstormhappening = self.__read_boolean(f)
-            self.sandstormtimeleft = self.__read_int32(f)
-            self.sandstormseverity = self.__read_single(f)
-            self.sandstormintendedseverity = self.__read_single(f)
+            self.sandstormhappening = read_boolean(f)
+            self.sandstormtimeleft = read_int32(f)
+            self.sandstormseverity = read_single(f)
+            self.sandstormintendedseverity = read_single(f)
         
         if self.version >= 178:
-            self.savedbartender = self.__read_boolean(f)
-            self.downeddd2invasiont1 = self.__read_boolean(f)
-            self.downeddd2invasiont2 = self.__read_boolean(f)
-            self.downeddd2invasiont3 = self.__read_boolean(f)
+            self.savedbartender = read_boolean(f)
+            self.downeddd2invasiont1 = read_boolean(f)
+            self.downeddd2invasiont2 = read_boolean(f)
+            self.downeddd2invasiont3 = read_boolean(f)
         
         if self.version > 194:
-            self.mushroombg = self.__read_uint8(f)
+            self.mushroombg = read_uint8(f)
         
         if self.version >= 215:
-            self.underworldbg = self.__read_uint8(f)
+            self.underworldbg = read_uint8(f)
         
         if self.version >= 195:
-            self.bgtree2 = self.__read_uint8(f)
-            self.bgtree3 = self.__read_uint8(f)
-            self.bgtree4 = self.__read_uint8(f)
+            self.bgtree2 = read_uint8(f)
+            self.bgtree3 = read_uint8(f)
+            self.bgtree4 = read_uint8(f)
         else:
             self.bgtree2 = self.bgtree
             self.bgtree3 = self.bgtree
             self.bgtree4 = self.bgtree
 
         if self.version >= 204:
-            self.combatbookused = self.__read_boolean(f)
+            self.combatbookused = read_boolean(f)
         
         if self.version >= 207:
-            self.lanternnightcooldown = self.__read_int32(f)
-            self.lanternnightgenuine = self.__read_boolean(f)
-            self.lanternnightmanual = self.__read_boolean(f)
-            self.lanternnightnextnightisgenuine = self.__read_boolean(f)
+            self.lanternnightcooldown = read_int32(f)
+            self.lanternnightgenuine = read_boolean(f)
+            self.lanternnightmanual = read_boolean(f)
+            self.lanternnightnextnightisgenuine = read_boolean(f)
         
         if self.version >= 211:
-            numtrees = self.__read_int32(f)
+            numtrees = read_int32(f)
             self.treetopvariations = [0]*max([13, numtrees])
             for i in range(numtrees):
-                self.treetopvariations[i] = self.__read_int32(f)
+                self.treetopvariations[i] = read_int32(f)
         else:
             self.treetopvariations[0] = self.treestyle0
             self.treetopvariations[1] = self.treestyle1
@@ -744,14 +646,14 @@ class TerrariaWorld:
             self.treetopvariations[12] = self.underworldbg
 
         if self.version >= 212:
-            self.forcehalloweenfortoday = self.__read_boolean(f)
-            self.forcexmasfortoday = self.__read_boolean(f)
+            self.forcehalloweenfortoday = read_boolean(f)
+            self.forcexmasfortoday = read_boolean(f)
         
         if self.version >= 216:
-            self.savedoretierscopper = self.__read_int32(f)
-            self.savedoretiersiron = self.__read_int32(f)
-            self.savedoretierssilver = self.__read_int32(f)
-            self.savedoretiersgold = self.__read_int32(f)
+            self.savedoretierscopper = read_int32(f)
+            self.savedoretiersiron = read_int32(f)
+            self.savedoretierssilver = read_int32(f)
+            self.savedoretiersgold = read_int32(f)
         else:
             self.savedoretierscopper = -1
             self.savedoretiersiron = -1
@@ -759,48 +661,48 @@ class TerrariaWorld:
             self.savedoretiersgold = -1
         
         if self.version >= 217:
-            self.boughtcat = self.__read_boolean(f)
-            self.boughtdog = self.__read_boolean(f)
-            self.boughtbunny = self.__read_boolean(f)
+            self.boughtcat = read_boolean(f)
+            self.boughtdog = read_boolean(f)
+            self.boughtbunny = read_boolean(f)
         
         if self.version >= 223:
-            self.downedempressoflight = self.__read_boolean(f)
-            self.downedqueenslime = self.__read_boolean(f)
+            self.downedempressoflight = read_boolean(f)
+            self.downedqueenslime = read_boolean(f)
         
         if self.version >= 240:
-            self.downeddeerclops = self.__read_boolean(f)
+            self.downeddeerclops = read_boolean(f)
         
         if self.version >= 250:
-            self.unlockedslimebluespawn = self.__read_boolean(f)
+            self.unlockedslimebluespawn = read_boolean(f)
         
         if self.version >= 251:
-            self.unlockedmerchantspawn = self.__read_boolean(f)
-            self.unlockeddemolitionistspawn = self.__read_boolean(f)
-            self.unlockedpartygirlspawn = self.__read_boolean(f)
-            self.unlockeddyetraderspawn = self.__read_boolean(f)
-            self.unlockedtrufflespawn = self.__read_boolean(f)
-            self.unlockedarmsdealerspawn = self.__read_boolean(f)
-            self.unlockednursespawn = self.__read_boolean(f)
-            self.unlockedprincessspawn = self.__read_boolean(f)
+            self.unlockedmerchantspawn = read_boolean(f)
+            self.unlockeddemolitionistspawn = read_boolean(f)
+            self.unlockedpartygirlspawn = read_boolean(f)
+            self.unlockeddyetraderspawn = read_boolean(f)
+            self.unlockedtrufflespawn = read_boolean(f)
+            self.unlockedarmsdealerspawn = read_boolean(f)
+            self.unlockednursespawn = read_boolean(f)
+            self.unlockedprincessspawn = read_boolean(f)
         
         if self.version >= 259:
-            self.combatbookvolumetwowasused = self.__read_boolean(f)
+            self.combatbookvolumetwowasused = read_boolean(f)
         
         if self.version >= 260:
-            self.peddlerssatchelwasused = self.__read_boolean(f)
+            self.peddlerssatchelwasused = read_boolean(f)
         
         if self.version >= 261:
-            self.unlockedslimegreenspawn = self.__read_boolean(f)
-            self.unlockedslimeoldspawn = self.__read_boolean(f)
-            self.unlockedslimepurplespawn = self.__read_boolean(f)
-            self.unlockedslimerainbowspawn = self.__read_boolean(f)
-            self.unlockedslimeredspawn = self.__read_boolean(f)
-            self.unlockedslimeyellowspawn = self.__read_boolean(f)
-            self.unlockedslimecopperspawn = self.__read_boolean(f)
+            self.unlockedslimegreenspawn = read_boolean(f)
+            self.unlockedslimeoldspawn = read_boolean(f)
+            self.unlockedslimepurplespawn = read_boolean(f)
+            self.unlockedslimerainbowspawn = read_boolean(f)
+            self.unlockedslimeredspawn = read_boolean(f)
+            self.unlockedslimeyellowspawn = read_boolean(f)
+            self.unlockedslimecopperspawn = read_boolean(f)
         
         if self.version >= 264:
-            self.fastforwardtimetodusk = self.__read_boolean(f)
-            self.moondialcooldown = self.__read_uint8(f)
+            self.fastforwardtimetodusk = read_boolean(f)
+            self.moondialcooldown = read_uint8(f)
         
         return
     
@@ -840,7 +742,7 @@ class TerrariaWorld:
         header4 = 0
         header3 = 0
         header2 = 0
-        header1 = self.__read_uint8(f)
+        header1 = read_uint8(f)
 
         hasheader2 = False
         hasheader3 = False
@@ -848,25 +750,25 @@ class TerrariaWorld:
 
         if header1 & 0b0000_0001:
             hasheader2 = True
-            header2 = self.__read_uint8(f)
+            header2 = read_uint8(f)
         
         if hasheader2 and (header2 & 0b0000_0001):
             hasheader3 = True
-            header3 = self.__read_uint8(f)
+            header3 = read_uint8(f)
         
         if version >= 269:
             if hasheader3 and (header3 & 0b0000_0001):
                 hasheader4 = True
-                header4 = self.__read_uint8(f)
+                header4 = read_uint8(f)
         
         isactive:bool = (header1 & 0b0000_0010) == 0b0000_0010
 
         if isactive:
             if not (header1 & 0b0010_0000):
-                tiletype = self.__read_uint8(f)
+                tiletype = read_uint8(f)
             else:
-                lowerbyte = self.__read_uint8(f)
-                tiletype = self.__read_uint8(f)
+                lowerbyte = read_uint8(f)
+                tiletype = read_uint8(f)
                 tiletype = (tiletype << 8) | lowerbyte
             single_tile[Channel.TILETYPE] = tiletype
 
@@ -874,26 +776,26 @@ class TerrariaWorld:
                 single_tile[Channel.FRAMEX] = 0
                 single_tile[Channel.FRAMEY] = 0
             else:
-                single_tile[Channel.FRAMEX] = self.__read_int16(f)
-                single_tile[Channel.FRAMEY] = self.__read_int16(f)
+                single_tile[Channel.FRAMEX] = read_int16(f)
+                single_tile[Channel.FRAMEY] = read_int16(f)
 
                 if single_tile[Channel.TILETYPE] == 144: #reset timers
                     single_tile[Channel.FRAMEY] = 0
             
             if header3 & 0b0000_1000:
-                single_tile[Channel.TILECOLOR] = self.__read_uint8(f)
+                single_tile[Channel.TILECOLOR] = read_uint8(f)
         else:
             single_tile[Channel.TILETYPE] = -1
 
 
         if header1 & 0b0000_0100:
-            single_tile[Channel.WALL] = self.__read_uint8(f)
+            single_tile[Channel.WALL] = read_uint8(f)
             if ((header3 & 0b0001_0000) == 0b0001_0000):
-                single_tile[Channel.WALLCOLOR] = self.__read_uint8(f)
+                single_tile[Channel.WALLCOLOR] = read_uint8(f)
         
         liquidtype = (header1 & 0b0001_1000) >> 3
         if liquidtype != 0:
-            single_tile[Channel.LIQUIDAMOUNT] = self.__read_uint8(f)
+            single_tile[Channel.LIQUIDAMOUNT] = read_uint8(f)
             single_tile[Channel.LIQUIDTYPE] = liquidtype
 
             if version >= 269 and ((header3 & 0b1000_0000) == 0b1000_0000):
@@ -923,7 +825,7 @@ class TerrariaWorld:
             
             if version >= 222:
                 if header3 & 0b0100_0000:
-                    single_tile[Channel.WALL] = (self.__read_uint8(f) << 8) | single_tile[Channel.WALL]
+                    single_tile[Channel.WALL] = (read_uint8(f) << 8) | single_tile[Channel.WALL]
         
         if (version >= 269 and header4 > 1):
             if header4 & 0b_0000_0010:
@@ -939,15 +841,15 @@ class TerrariaWorld:
         if rlestoragetype == 0:
             rle = 0
         elif rlestoragetype == 1:
-            rle = self.__read_uint8(f)
+            rle = read_uint8(f)
         else:
-            rle = self.__read_int16(f)
+            rle = read_int16(f)
         
         return single_tile, rle
 
     def __LoadChestData(self, f, chest_verbose) -> list[Chest]:
-        total_chests = self.__read_int16(f)
-        max_items = self.__read_int16(f)
+        total_chests = read_int16(f)
+        max_items = read_int16(f)
         CHEST_MAX = 40
 
         if max_items > CHEST_MAX:
@@ -960,28 +862,28 @@ class TerrariaWorld:
         chests = []
 
         for i in range(total_chests):
-            X = self.__read_int32(f)
-            Y = self.__read_int32(f)
-            name = self.__read_string(f)
+            X = read_int32(f)
+            Y = read_int32(f)
+            name = read_string(f)
             chest = Chest(X, Y, name)
 
             for slot in range(items_per_chest):
-                stacksize = self.__read_int16(f)
+                stacksize = read_int16(f)
                 chest.items[slot].stacksize = stacksize
 
                 if stacksize > 0:
-                    item_id = self.__read_int32(f)
-                    prefix = self.__read_uint8(f)
+                    item_id = read_int32(f)
+                    prefix = read_uint8(f)
 
                     chest.items[slot].netid = item_id
                     chest.items[slot].stacksize = stacksize
                     chest.items[slot].prefix = prefix
         
             for overflow in range(overflowitems):
-                stacksize = self.__read_int16(f)
+                stacksize = read_int16(f)
                 if stacksize > 0:
-                    self.__read_int32(f)
-                    self.__read_uint8(f)
+                    read_int32(f)
+                    read_uint8(f)
             
             chests.append(chest)
         
@@ -992,14 +894,14 @@ class TerrariaWorld:
         return chests
 
     def __LoadSignData(self, f, sign_verbose) -> list[Sign]:
-        totalsigns = self.__read_int16(f)
+        totalsigns = read_int16(f)
 
         signs = []
 
         for i in range(totalsigns):
-            text = self.__read_string(f)
-            x = self.__read_int32(f)
-            y = self.__read_int32(f)
+            text = read_string(f)
+            x = read_int32(f)
+            y = read_int32(f)
             sign = Sign(text, x, y)
 
             signs.append(sign)
@@ -1011,30 +913,30 @@ class TerrariaWorld:
         return signs
 
     def __LoadTileEntity(self, f:io.BufferedReader) -> list[TileEntity]:
-        count = self.__read_int32(f)
+        count = read_int32(f)
         ret = []
         for counter in range(count):
-            entity_type = self.__read_uint8(f)
-            entity_id = self.__read_int32(f)
-            posX = self.__read_int16(f)
-            posY = self.__read_int16(f)
+            entity_type = read_uint8(f)
+            entity_id = read_int32(f)
+            posX = read_int16(f)
+            posY = read_int16(f)
             entity = TileEntity(type=entity_type,
                                 entity_id=entity_id,
                                 posX=posX,
                                 posY=posY)
             
             if entity_type == TileEntityType.TrainingDummy:
-                entity.attribute["npc"] = self.__read_int16(f)
+                entity.attribute["npc"] = read_int16(f)
             elif entity_type in [TileEntityType.ItemFrame,
                                  TileEntityType.WeaponRack,
                                  TileEntityType.FoodPlatter]:
                 entity.attribute["item"] = self.__LoadItem4TileEntity(f)
             elif entity_type == TileEntityType.LogicSensor:
-                entity.attribute["logiccheck"] = self.__read_uint8(f)
-                entity.attribute["on"] = self.__read_boolean(f)
+                entity.attribute["logiccheck"] = read_uint8(f)
+                entity.attribute["on"] = read_boolean(f)
             elif entity_type == TileEntityType.DisplayDoll:
-                item_bitmask = self.__read_uint8(f)
-                dye_bitmask = self.__read_uint8(f)
+                item_bitmask = read_uint8(f)
+                dye_bitmask = read_uint8(f)
                 items:list[Item] = [Item() for _ in range(8)]
                 dyes:list[Item] = [Item() for _ in range(8)]
                 for idx in range(8):
@@ -1046,7 +948,7 @@ class TerrariaWorld:
                 entity.attribute["items"] = items
                 entity.attribute["dyes"] = dyes
             elif entity_type == TileEntityType.HatRack:
-                slots_bitmask = self.__read_uint8(f)
+                slots_bitmask = read_uint8(f)
                 items:list[Item] = [Item() for _ in range(2)]
                 dyes:list[Item] = [Item() for _ in range(2)]
                 for idx in range(2):
@@ -1065,32 +967,32 @@ class TerrariaWorld:
         return ret
 
     def __LoadItem4TileEntity(self, f) -> Item:
-        netid = self.__read_int16(f)
-        prefix = self.__read_uint8(f)
-        stacksize = self.__read_int16(f)
+        netid = read_int16(f)
+        prefix = read_uint8(f)
+        stacksize = read_int16(f)
         return Item(netid=netid, prefix=prefix, stacksize=stacksize)
 
     def __LoadPressurePlate(self, f) -> list[PressurePlate]:
-        count = self.__read_int32(f)
+        count = read_int32(f)
         ret = []
         for counter in range(count):
-            posX = self.__read_int32(f)
-            posY = self.__read_int32(f)
+            posX = read_int32(f)
+            posY = read_int32(f)
             ret.append(PressurePlate(posX, posY))
         return ret
 
     def __LoadFooter(self, f):
-        boolean_footer = self.__read_boolean(f)
+        boolean_footer = read_boolean(f)
         # print(f"{boolean_footer = }")
         if not boolean_footer:
             raise WorldFileFormatException("Invalid Boolean Footer")
         
-        title_footer = self.__read_string(f)
+        title_footer = read_string(f)
         # print(f"{title_footer = }")
         if title_footer != self.title:
             raise WorldFileFormatException("Invalid World Title Footer")
         
-        world_id_footer = self.__read_int32(f)
+        world_id_footer = read_int32(f)
         # print(f"{world_id_footer = }")
         if world_id_footer != self.worldid:
             raise WorldFileFormatException("Invalid World ID Footer")
@@ -1200,7 +1102,7 @@ class TerrariaWorld:
 
     #TODO: maybe this should be updated upon 1.4.5?
     def __SaveSectionHeader(self, f:io.BufferedWriter, tileframeimportant) -> int:
-        self.__write_uint32(f, self.version)
+        write_uint32(f, self.version)
 
         if self.version >= 140:
             if self.ischinese:
@@ -1208,26 +1110,26 @@ class TerrariaWorld:
             else:
                 f.write('relogic'.encode('ascii'))
             
-            self.__write_uint8(f, 2)
+            write_uint8(f, 2)
 
-            self.__write_uint32(f, self.filerevision)
+            write_uint32(f, self.filerevision)
 
             worldheaderflags = 0
             if self.isfavorite:
                 worldheaderflags |= 1
-            self.__write_uint64(f, worldheaderflags)
+            write_uint64(f, worldheaderflags)
 
         sectioncount = self.__getsectioncount()
-        self.__write_int16(f, sectioncount)
+        write_int16(f, sectioncount)
 
         for _ in range(sectioncount):
-            self.__write_int32(f, 0)
+            write_int32(f, 0)
         
         self.__WriteBitArray(f, tileframeimportant)
         return f.tell()
     
     def __WriteBitArray(self, f, tileframeimportant):
-        self.__write_int16(f, len(tileframeimportant))
+        write_int16(f, len(tileframeimportant))
 
         data = 0
         bitmask = 1
@@ -1237,310 +1139,310 @@ class TerrariaWorld:
             if bitmask != 128:
                 bitmask = bitmask << 1
             else:
-                self.__write_uint8(f, data)
+                write_uint8(f, data)
                 data = 0
                 bitmask = 1
         
         if bitmask != 1:
-            self.__write_uint8(f, data)
+            write_uint8(f, data)
     
     #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __SaveHeaderFlags(self, f:io.BufferedWriter) -> int:
-        self.__write_string(f, self.title)
+        write_string(f, self.title)
 
         if self.version >= 179:
             if self.version == 179:
                 seed = int(self.seed)
-                self.__write_int32(f, seed)
+                write_int32(f, seed)
             else:
                 seed = int(self.seed)
-                self.__write_string(f, str(seed))
-            self.__write_uint64(f, self.worldgenversion)
+                write_string(f, str(seed))
+            write_uint64(f, self.worldgenversion)
         
         if self.version >= 181:
             f.write(self.worldguid.bytes)
         
-        self.__write_int32(f, self.worldid)
-        self.__write_int32(f, int(self.leftworld))
-        self.__write_int32(f, int(self.rightworld))
-        self.__write_int32(f, int(self.topworld))
-        self.__write_int32(f, int(self.bottomworld))
-        self.__write_int32(f, self.tileshigh)
-        self.__write_int32(f, self.tileswide)
+        write_int32(f, self.worldid)
+        write_int32(f, int(self.leftworld))
+        write_int32(f, int(self.rightworld))
+        write_int32(f, int(self.topworld))
+        write_int32(f, int(self.bottomworld))
+        write_int32(f, self.tileshigh)
+        write_int32(f, self.tileswide)
 
         if self.version >= 209:
-            self.__write_int32(f, self.gamemode)
+            write_int32(f, self.gamemode)
             
-            if self.version >= 222: self.__write_boolean(f, self.drunkworld)
-            if self.version >= 227: self.__write_boolean(f, self.goodworld)
-            if self.version >= 238: self.__write_boolean(f, self.tenthanniversaryworld)
-            if self.version >= 239: self.__write_boolean(f, self.dontstarveworld)
-            if self.version >= 241: self.__write_boolean(f, self.notthebeesworld)
-            if self.version >= 249: self.__write_boolean(f, self.remixworld)
-            if self.version >= 266: self.__write_boolean(f, self.notrapworld)
-            if self.version >= 266: self.__write_boolean(f, self.zenithworld)
+            if self.version >= 222: write_boolean(f, self.drunkworld)
+            if self.version >= 227: write_boolean(f, self.goodworld)
+            if self.version >= 238: write_boolean(f, self.tenthanniversaryworld)
+            if self.version >= 239: write_boolean(f, self.dontstarveworld)
+            if self.version >= 241: write_boolean(f, self.notthebeesworld)
+            if self.version >= 249: write_boolean(f, self.remixworld)
+            if self.version >= 266: write_boolean(f, self.notrapworld)
+            if self.version >= 266: write_boolean(f, self.zenithworld)
         elif self.version == 208:
-            self.__write_boolean(f, self.gamemode == 2)
+            write_boolean(f, self.gamemode == 2)
         elif self.version == 112:
-            self.__write_boolean(f, self.gamemode == 1)
+            write_boolean(f, self.gamemode == 1)
         else:
             pass
 
         if self.version >= 141:
-            self.__write_int64(f, self.creationtime)
+            write_int64(f, self.creationtime)
         
-        self.__write_uint8(f, self.moontype)
-        self.__write_int32(f, self.treeX0)
-        self.__write_int32(f, self.treeX1)
-        self.__write_int32(f, self.treeX2)
-        self.__write_int32(f, self.treestyle0)
-        self.__write_int32(f, self.treestyle1)
-        self.__write_int32(f, self.treestyle2)
-        self.__write_int32(f, self.treestyle3)
-        self.__write_int32(f, self.cavebackX0)
-        self.__write_int32(f, self.cavebackX1)
-        self.__write_int32(f, self.cavebackX2)
-        self.__write_int32(f, self.cavebackstyle0)
-        self.__write_int32(f, self.cavebackstyle1)
-        self.__write_int32(f, self.cavebackstyle2)
-        self.__write_int32(f, self.cavebackstyle3)
-        self.__write_int32(f, self.icebackstyle)
-        self.__write_int32(f, self.junglebackstyle)
-        self.__write_int32(f, self.hellbackstyle)
+        write_uint8(f, self.moontype)
+        write_int32(f, self.treeX0)
+        write_int32(f, self.treeX1)
+        write_int32(f, self.treeX2)
+        write_int32(f, self.treestyle0)
+        write_int32(f, self.treestyle1)
+        write_int32(f, self.treestyle2)
+        write_int32(f, self.treestyle3)
+        write_int32(f, self.cavebackX0)
+        write_int32(f, self.cavebackX1)
+        write_int32(f, self.cavebackX2)
+        write_int32(f, self.cavebackstyle0)
+        write_int32(f, self.cavebackstyle1)
+        write_int32(f, self.cavebackstyle2)
+        write_int32(f, self.cavebackstyle3)
+        write_int32(f, self.icebackstyle)
+        write_int32(f, self.junglebackstyle)
+        write_int32(f, self.hellbackstyle)
 
-        self.__write_int32(f, self.spawnX)
-        self.__write_int32(f, self.spawnY)
-        self.__write_double(f, self.groundlevel)
-        self.__write_double(f, self.rocklevel)
-        self.__write_double(f, self.time)
-        self.__write_boolean(f, self.daytime)
-        self.__write_int32(f, self.moonphase)
-        self.__write_boolean(f, self.bloodmoon)
-        self.__write_boolean(f, self.iseclipse)
-        self.__write_int32(f, self.dungeonX)
-        self.__write_int32(f, self.dungeonY)
+        write_int32(f, self.spawnX)
+        write_int32(f, self.spawnY)
+        write_double(f, self.groundlevel)
+        write_double(f, self.rocklevel)
+        write_double(f, self.time)
+        write_boolean(f, self.daytime)
+        write_int32(f, self.moonphase)
+        write_boolean(f, self.bloodmoon)
+        write_boolean(f, self.iseclipse)
+        write_int32(f, self.dungeonX)
+        write_int32(f, self.dungeonY)
 
-        self.__write_boolean(f, self.iscrimson)
+        write_boolean(f, self.iscrimson)
 
-        self.__write_boolean(f, self.downedboss1eyeofcthulhu)
-        self.__write_boolean(f, self.downedboss2eaterofworlds)
-        self.__write_boolean(f, self.downedboss3skeletron)
-        self.__write_boolean(f, self.downedqueenbee)
-        self.__write_boolean(f, self.downedmechboss1thedestroyer)
-        self.__write_boolean(f, self.downedmechboss2thetwins)
-        self.__write_boolean(f, self.downedmechboss3skeletronprime)
-        self.__write_boolean(f, self.downedmechbossany)
-        self.__write_boolean(f, self.downedplantboss)
-        self.__write_boolean(f, self.downedgolemboss)
+        write_boolean(f, self.downedboss1eyeofcthulhu)
+        write_boolean(f, self.downedboss2eaterofworlds)
+        write_boolean(f, self.downedboss3skeletron)
+        write_boolean(f, self.downedqueenbee)
+        write_boolean(f, self.downedmechboss1thedestroyer)
+        write_boolean(f, self.downedmechboss2thetwins)
+        write_boolean(f, self.downedmechboss3skeletronprime)
+        write_boolean(f, self.downedmechbossany)
+        write_boolean(f, self.downedplantboss)
+        write_boolean(f, self.downedgolemboss)
 
-        if self.version >= 118: self.__write_boolean(f, self.downedslimekingboss)
+        if self.version >= 118: write_boolean(f, self.downedslimekingboss)
 
-        self.__write_boolean(f, self.savedgoblin)
-        self.__write_boolean(f, self.savedwizard)
-        self.__write_boolean(f, self.savedmech)
-        self.__write_boolean(f, self.downedgoblins)
-        self.__write_boolean(f, self.downedclown)
-        self.__write_boolean(f, self.downedfrost)
-        self.__write_boolean(f, self.downedpirates)
+        write_boolean(f, self.savedgoblin)
+        write_boolean(f, self.savedwizard)
+        write_boolean(f, self.savedmech)
+        write_boolean(f, self.downedgoblins)
+        write_boolean(f, self.downedclown)
+        write_boolean(f, self.downedfrost)
+        write_boolean(f, self.downedpirates)
 
-        self.__write_boolean(f, self.shadoworbsmashed)
-        self.__write_boolean(f, self.spawnmeteor)
-        self.__write_uint8(f, self.shadoworbcount)
-        self.__write_int32(f, self.altarcount)
-        self.__write_boolean(f, self.hardmode)
-        if self.version >= 257: self.__write_boolean(f, self.partyofdoom)
-        self.__write_int32(f, self.invasiondelay)
-        self.__write_int32(f, self.invasionsize)
-        self.__write_int32(f, self.invasiontype)
-        self.__write_double(f, self.invasionX)
-        if self.version >= 118: self.__write_double(f, self.slimeraintime)
-        if self.version >= 113: self.__write_uint8(f, self.sundialcooldown)
+        write_boolean(f, self.shadoworbsmashed)
+        write_boolean(f, self.spawnmeteor)
+        write_uint8(f, self.shadoworbcount)
+        write_int32(f, self.altarcount)
+        write_boolean(f, self.hardmode)
+        if self.version >= 257: write_boolean(f, self.partyofdoom)
+        write_int32(f, self.invasiondelay)
+        write_int32(f, self.invasionsize)
+        write_int32(f, self.invasiontype)
+        write_double(f, self.invasionX)
+        if self.version >= 118: write_double(f, self.slimeraintime)
+        if self.version >= 113: write_uint8(f, self.sundialcooldown)
 
-        self.__write_boolean(f, self.israining)
-        self.__write_int32(f, self.tempraintime)
-        self.__write_single(f, self.tempmaxrain)
-        self.__write_int32(f, self.savedoretierscobalt)
-        self.__write_int32(f, self.savedoretiersmythril)
-        self.__write_int32(f, self.savedoretiersadamantitie)
-        self.__write_uint8(f, self.bgtree)
-        self.__write_uint8(f, self.bgcorruption)
-        self.__write_uint8(f, self.bgjungle)
-        self.__write_uint8(f, self.bgsnow)
-        self.__write_uint8(f, self.bghallow)
-        self.__write_uint8(f, self.bgcrimson)
-        self.__write_uint8(f, self.bgdesert)
-        self.__write_uint8(f, self.bgocean)
-        self.__write_int32(f, int(self.cloudbgactive))
-        self.__write_int16(f, self.numclouds)
-        self.__write_single(f, self.windspeedset)
+        write_boolean(f, self.israining)
+        write_int32(f, self.tempraintime)
+        write_single(f, self.tempmaxrain)
+        write_int32(f, self.savedoretierscobalt)
+        write_int32(f, self.savedoretiersmythril)
+        write_int32(f, self.savedoretiersadamantitie)
+        write_uint8(f, self.bgtree)
+        write_uint8(f, self.bgcorruption)
+        write_uint8(f, self.bgjungle)
+        write_uint8(f, self.bgsnow)
+        write_uint8(f, self.bghallow)
+        write_uint8(f, self.bgcrimson)
+        write_uint8(f, self.bgdesert)
+        write_uint8(f, self.bgocean)
+        write_int32(f, int(self.cloudbgactive))
+        write_int16(f, self.numclouds)
+        write_single(f, self.windspeedset)
 
         if self.version < 95: return f.tell()
 
-        self.__write_int32(f, len(self.anglers))
+        write_int32(f, len(self.anglers))
 
         for angler in self.anglers:
-            self.__write_string(f, angler)
+            write_string(f, angler)
         
         if self.version < 99: return f.tell()
 
-        self.__write_boolean(f, self.savedangler)
+        write_boolean(f, self.savedangler)
 
         if self.version < 101: return f.tell()
 
-        self.__write_int32(f, self.anglerquest)
+        write_int32(f, self.anglerquest)
 
         if self.version < 104: return f.tell()
 
-        self.__write_boolean(f, self.savedstylist)
+        write_boolean(f, self.savedstylist)
 
         if self.version >= 129:
-            self.__write_boolean(f, self.savedtaxcollector)
+            write_boolean(f, self.savedtaxcollector)
         if self.version >= 201:
-            self.__write_boolean(f, self.savedgolfer)
+            write_boolean(f, self.savedgolfer)
         if self.version >= 107:
-            self.__write_int32(f, self.invasionsizestart)
+            write_int32(f, self.invasionsizestart)
         if self.version >= 108:
-            self.__write_int32(f, self.cultistdelay)
+            write_int32(f, self.cultistdelay)
         
         if self.version < 109: return f.tell()
 
         number_of_mobs = len(self.killedmobs)
-        self.__write_int16(f, number_of_mobs)
+        write_int16(f, number_of_mobs)
         for i in range(number_of_mobs):
-            self.__write_int32(f, self.killedmobs[i])
+            write_int32(f, self.killedmobs[i])
         
         if self.version < 128: return f.tell()
 
         if self.version >= 140:
-            self.__write_boolean(f, self.fastforwardtime)
+            write_boolean(f, self.fastforwardtime)
         
         if self.version < 131: return f.tell()
 
-        self.__write_boolean(f, self.downedfishron)
+        write_boolean(f, self.downedfishron)
 
         if self.version >= 140:
-            self.__write_boolean(f, self.downedmartians)
-            self.__write_boolean(f, self.downedlunaticcultist)
-            self.__write_boolean(f, self.downedmoonlord)
+            write_boolean(f, self.downedmartians)
+            write_boolean(f, self.downedlunaticcultist)
+            write_boolean(f, self.downedmoonlord)
 
-        self.__write_boolean(f, self.downedhalloweenking)
-        self.__write_boolean(f, self.downedhalloweentree)
-        self.__write_boolean(f, self.downedchristmasqueen)
-        self.__write_boolean(f, self.downedsanta)
-        self.__write_boolean(f, self.downedchristmastree)
+        write_boolean(f, self.downedhalloweenking)
+        write_boolean(f, self.downedhalloweentree)
+        write_boolean(f, self.downedchristmasqueen)
+        write_boolean(f, self.downedsanta)
+        write_boolean(f, self.downedchristmastree)
 
         if self.version < 140: return f.tell()
 
-        self.__write_boolean(f, self.downedcelestialsolar)
-        self.__write_boolean(f, self.downedcelestialvortex)
-        self.__write_boolean(f, self.downedcelestialnebula)
-        self.__write_boolean(f, self.downedcelestialstardust)
-        self.__write_boolean(f, self.celestialsolaractive)
-        self.__write_boolean(f, self.celestialvortexactive)
-        self.__write_boolean(f, self.celestialnebulaactive)
-        self.__write_boolean(f, self.celestialstardustactive)
-        self.__write_boolean(f, self.apocalypse)
+        write_boolean(f, self.downedcelestialsolar)
+        write_boolean(f, self.downedcelestialvortex)
+        write_boolean(f, self.downedcelestialnebula)
+        write_boolean(f, self.downedcelestialstardust)
+        write_boolean(f, self.celestialsolaractive)
+        write_boolean(f, self.celestialvortexactive)
+        write_boolean(f, self.celestialnebulaactive)
+        write_boolean(f, self.celestialstardustactive)
+        write_boolean(f, self.apocalypse)
 
         if self.version >= 170:
-            self.__write_boolean(f, self.partymanual)
-            self.__write_boolean(f, self.partygenuine)
-            self.__write_int32(f, self.partycooldown)
+            write_boolean(f, self.partymanual)
+            write_boolean(f, self.partygenuine)
+            write_int32(f, self.partycooldown)
             numparty = len(self.partyingnpcs)
-            self.__write_int32(f, numparty)
+            write_int32(f, numparty)
             for i in range(numparty):
-                self.__write_int32(f, numparty[i])
+                write_int32(f, numparty[i])
         
         if self.version >= 174:
-            self.__write_boolean(f, self.sandstormhappening)
-            self.__write_int32(f, self.sandstormtimeleft)
-            self.__write_single(f, self.sandstormseverity)
-            self.__write_single(f, self.sandstormintendedseverity)
+            write_boolean(f, self.sandstormhappening)
+            write_int32(f, self.sandstormtimeleft)
+            write_single(f, self.sandstormseverity)
+            write_single(f, self.sandstormintendedseverity)
 
         if self.version >= 178:
-            self.__write_boolean(f, self.savedbartender)
-            self.__write_boolean(f, self.downeddd2invasiont1)
-            self.__write_boolean(f, self.downeddd2invasiont2)
-            self.__write_boolean(f, self.downeddd2invasiont3)
+            write_boolean(f, self.savedbartender)
+            write_boolean(f, self.downeddd2invasiont1)
+            write_boolean(f, self.downeddd2invasiont2)
+            write_boolean(f, self.downeddd2invasiont3)
 
         if self.version > 194:
-            self.__write_uint8(f, self.mushroombg)
+            write_uint8(f, self.mushroombg)
 
         if self.version >= 215:
-            self.__write_uint8(f, self.underworldbg)
+            write_uint8(f, self.underworldbg)
         
         if self.version >= 195:
-            self.__write_uint8(f, self.bgtree2)
-            self.__write_uint8(f, self.bgtree3)
-            self.__write_uint8(f, self.bgtree4)
+            write_uint8(f, self.bgtree2)
+            write_uint8(f, self.bgtree3)
+            write_uint8(f, self.bgtree4)
 
         if self.version >= 204:
-            self.__write_boolean(f, self.combatbookused)
+            write_boolean(f, self.combatbookused)
         
         if self.version >= 207:
-            self.__write_int32(f, self.lanternnightcooldown)
-            self.__write_boolean(f, self.lanternnightgenuine)
-            self.__write_boolean(f, self.lanternnightmanual)
-            self.__write_boolean(f, self.lanternnightnextnightisgenuine)
+            write_int32(f, self.lanternnightcooldown)
+            write_boolean(f, self.lanternnightgenuine)
+            write_boolean(f, self.lanternnightmanual)
+            write_boolean(f, self.lanternnightnextnightisgenuine)
 
         if self.version >= 211:
             numtrees = len(self.treetopvariations)
-            self.__write_int32(f, numtrees)
+            write_int32(f, numtrees)
             for i in range(numtrees):
-                self.__write_int32(f, self.treetopvariations[i])
+                write_int32(f, self.treetopvariations[i])
 
         if self.version >= 212:
-            self.__write_boolean(f, self.forcehalloweenfortoday)
-            self.__write_boolean(f, self.forcexmasfortoday)
+            write_boolean(f, self.forcehalloweenfortoday)
+            write_boolean(f, self.forcexmasfortoday)
 
         if self.version >= 216:
-            self.__write_int32(f, self.savedoretierscopper)
-            self.__write_int32(f, self.savedoretiersiron)
-            self.__write_int32(f, self.savedoretierssilver)
-            self.__write_int32(f, self.savedoretiersgold)
+            write_int32(f, self.savedoretierscopper)
+            write_int32(f, self.savedoretiersiron)
+            write_int32(f, self.savedoretierssilver)
+            write_int32(f, self.savedoretiersgold)
         
         if self.version >= 217:
-            self.__write_boolean(f, self.boughtcat)
-            self.__write_boolean(f, self.boughtdog)
-            self.__write_boolean(f, self.boughtbunny)
+            write_boolean(f, self.boughtcat)
+            write_boolean(f, self.boughtdog)
+            write_boolean(f, self.boughtbunny)
 
         if self.version >= 223:
-            self.__write_boolean(f, self.downedempressoflight)
-            self.__write_boolean(f, self.downedqueenslime)
+            write_boolean(f, self.downedempressoflight)
+            write_boolean(f, self.downedqueenslime)
         
         if self.version >= 240:
-            self.__write_boolean(f, self.downeddeerclops)
+            write_boolean(f, self.downeddeerclops)
         
         if self.version >= 250:
-            self.__write_boolean(f, self.unlockedslimebluespawn)
+            write_boolean(f, self.unlockedslimebluespawn)
         
         if self.version >= 251:
-            self.__write_boolean(f, self.unlockedmerchantspawn)
-            self.__write_boolean(f, self.unlockeddemolitionistspawn)
-            self.__write_boolean(f, self.unlockedpartygirlspawn)
-            self.__write_boolean(f, self.unlockeddyetraderspawn)
-            self.__write_boolean(f, self.unlockedtrufflespawn)
-            self.__write_boolean(f, self.unlockedarmsdealerspawn)
-            self.__write_boolean(f, self.unlockednursespawn)
-            self.__write_boolean(f, self.unlockedprincessspawn)
+            write_boolean(f, self.unlockedmerchantspawn)
+            write_boolean(f, self.unlockeddemolitionistspawn)
+            write_boolean(f, self.unlockedpartygirlspawn)
+            write_boolean(f, self.unlockeddyetraderspawn)
+            write_boolean(f, self.unlockedtrufflespawn)
+            write_boolean(f, self.unlockedarmsdealerspawn)
+            write_boolean(f, self.unlockednursespawn)
+            write_boolean(f, self.unlockedprincessspawn)
         
         if self.version >= 259:
-            self.__write_boolean(f, self.combatbookvolumetwowasused)
+            write_boolean(f, self.combatbookvolumetwowasused)
         
         if self.version >= 260:
-            self.__write_boolean(f, self.peddlerssatchelwasused)
+            write_boolean(f, self.peddlerssatchelwasused)
         
         if self.version >= 261:
-            self.__write_boolean(f, self.unlockedslimegreenspawn)
-            self.__write_boolean(f, self.unlockedslimeoldspawn)
-            self.__write_boolean(f, self.unlockedslimepurplespawn)
-            self.__write_boolean(f, self.unlockedslimerainbowspawn)
-            self.__write_boolean(f, self.unlockedslimeredspawn)
-            self.__write_boolean(f, self.unlockedslimeyellowspawn)
-            self.__write_boolean(f, self.unlockedslimecopperspawn)
+            write_boolean(f, self.unlockedslimegreenspawn)
+            write_boolean(f, self.unlockedslimeoldspawn)
+            write_boolean(f, self.unlockedslimepurplespawn)
+            write_boolean(f, self.unlockedslimerainbowspawn)
+            write_boolean(f, self.unlockedslimeredspawn)
+            write_boolean(f, self.unlockedslimeyellowspawn)
+            write_boolean(f, self.unlockedslimecopperspawn)
         
         if self.version >= 264:
-            self.__write_boolean(f, self.fastforwardtimetodusk)
-            self.__write_uint8(f, self.moondialcooldown)
+            write_boolean(f, self.fastforwardtimetodusk)
+            write_uint8(f, self.moondialcooldown)
         
         return f.tell()
 
@@ -1590,7 +1492,7 @@ class TerrariaWorld:
                 tiledata[headerindex] = header1
                 try:
                     for idx in range(headerindex, dataindex):
-                        self.__write_uint8(f, tiledata[idx])
+                        write_uint8(f, tiledata[idx])
                 except struct.error:
                     print(tiledata)
                     exit(1)
@@ -1761,64 +1663,64 @@ class TerrariaWorld:
 
     def __SaveChests(self, f:io.BufferedWriter) -> int:
         count = len(self.chests)
-        self.__write_int16(f, count)
+        write_int16(f, count)
         MAXITEMS = 40
-        self.__write_int16(f, MAXITEMS)
+        write_int16(f, MAXITEMS)
 
         for chest in self.chests:
-            self.__write_int32(f, chest.X)
-            self.__write_int32(f, chest.Y)
-            self.__write_string(f, chest.name)
+            write_int32(f, chest.X)
+            write_int32(f, chest.Y)
+            write_string(f, chest.name)
             for slot in range(MAXITEMS):
                 item:Item = chest.items[slot]
                 stacksize = item.stacksize
-                self.__write_int16(f, stacksize)
+                write_int16(f, stacksize)
 
                 if stacksize > 0:
                     item_id = item.netid
                     prefix = item.prefix
-                    self.__write_int32(f, item_id)
-                    self.__write_uint8(f, prefix)
+                    write_int32(f, item_id)
+                    write_uint8(f, prefix)
         
         return f.tell()
     
     def __SaveSigns(self, f:io.BufferedWriter) -> int:
         count = len(self.signs)
-        self.__write_int16(f, count)
+        write_int16(f, count)
         for sign in self.signs:
             text = sign.text
             x = sign.x
             y = sign.y
-            self.__write_string(f, text)
-            self.__write_int32(f, x)
-            self.__write_int32(f, y)
+            write_string(f, text)
+            write_int32(f, x)
+            write_int32(f, y)
         
         return f.tell()
 
     def __SaveTileEntity(self, f:io.BufferedWriter) -> int:
         count = len(self.tile_entities)
-        self.__write_int32(f, count)
+        write_int32(f, count)
         for counter in range(count):
             entity = self.tile_entities[counter]
             entity_type = entity.type
-            self.__write_uint8(f, entity_type)
+            write_uint8(f, entity_type)
             entity_id = entity.entity_id
-            self.__write_int32(f, entity_id)
+            write_int32(f, entity_id)
             posX = entity.posX
-            self.__write_int16(f, posX)
+            write_int16(f, posX)
             posY = entity.posY
-            self.__write_int16(f, posY)
+            write_int16(f, posY)
             attribute = entity.attribute
 
             if entity_type == TileEntityType.TrainingDummy:
-                self.__write_int16(f, attribute["npc"])
+                write_int16(f, attribute["npc"])
             elif entity_type in [TileEntityType.ItemFrame,
                                  TileEntityType.WeaponRack,
                                  TileEntityType.FoodPlatter]:
                 self.__SaveItem4TileEntity(f, attribute["item"])
             elif entity_type == TileEntityType.LogicSensor:
-                self.__write_uint8(f, attribute["logiccheck"])
-                self.__write_boolean(f, attribute["on"])
+                write_uint8(f, attribute["logiccheck"])
+                write_boolean(f, attribute["on"])
             elif entity_type == TileEntityType.DisplayDoll:
                 item_bitmask = 0
                 dye_bitmask = 0
@@ -1830,8 +1732,8 @@ class TerrariaWorld:
                 for idx in range(8):
                     if not dyes[idx].is_empty():
                         dye_bitmask |= (1 << idx)
-                self.__write_uint8(f, item_bitmask)
-                self.__write_uint8(f, dye_bitmask)
+                write_uint8(f, item_bitmask)
+                write_uint8(f, dye_bitmask)
                 for idx in range(8):
                     if item_bitmask & (1 << idx):
                         self.__SaveItem4TileEntity(f, items[idx])
@@ -1848,7 +1750,7 @@ class TerrariaWorld:
                 for idx in range(2):
                     if not dyes[idx].is_empty():
                         slots_bitmask |= (1 << (idx + 2))
-                self.__write_uint8(f, slots_bitmask)
+                write_uint8(f, slots_bitmask)
                 for idx in range(2):
                     if slots_bitmask & (1 << idx):
                         self.__SaveItem4TileEntity(f, items[idx])
@@ -1863,29 +1765,29 @@ class TerrariaWorld:
         return f.tell()
 
     def __SaveItem4TileEntity(self, f:io.BufferedWriter, item:Item):
-        self.__write_int16(f, item.netid)
-        self.__write_uint8(f, item.prefix)
-        self.__write_int16(f, item.stacksize)
+        write_int16(f, item.netid)
+        write_uint8(f, item.prefix)
+        write_int16(f, item.stacksize)
 
     def __SavePressurePlate(self, f:io.BufferedWriter) -> int:
         count = len(self.pressure_plates)
-        self.__write_int32(f, count)
+        write_int32(f, count)
         for plate in self.pressure_plates:
-            self.__write_int32(f, plate.posX)
-            self.__write_int32(f, plate.posY)
+            write_int32(f, plate.posX)
+            write_int32(f, plate.posY)
         
         return f.tell()
 
     def __SaveFooter(self, f:io.BufferedWriter):
-        self.__write_boolean(f, True)
-        self.__write_string(f, self.title)
-        self.__write_int32(f, self.worldid)
+        write_boolean(f, True)
+        write_string(f, self.title)
+        write_int32(f, self.worldid)
 
     def __UpdateSectionPointers(self, f:io.BufferedWriter, sectionpointers:list[int]):
         f.seek(0)
-        self.__write_int32(f, self.version)
+        write_int32(f, self.version)
         seeking_pos = 0x18 if self.version >= 140 else 0x04
         f.seek(seeking_pos)
-        self.__write_int16(f, len(sectionpointers))
+        write_int16(f, len(sectionpointers))
         for i in range(len(sectionpointers)):
-            self.__write_int32(f, sectionpointers[i])
+            write_int32(f, sectionpointers[i])
