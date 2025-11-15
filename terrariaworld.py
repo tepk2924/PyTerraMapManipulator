@@ -22,7 +22,7 @@ class WorldFileSaveError(Exception):
 class TerrariaWorld:
     #At least making these works for 1.4.4.....
     def __init__(self,
-                 world_size:str = "large"):
+                 world_size:str | tuple = "large"):
         self.version:int = 279 #1.4.4
         self.ischinese:bool = False
         self.filerevision:int = 0
@@ -36,7 +36,7 @@ class TerrariaWorld:
         self.tile_entities:list[TileEntity] = []
         self.__initializeotherdata()
 
-    #SHOULE BE UPDATED UPON 1.4.5 ARRIVES
+    #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __initializetileframeimportant(self):
         '''
         This decides whether tile type is block or sprite.
@@ -47,17 +47,12 @@ class TerrariaWorld:
 
     def __initializeotherdata(self):
         self.NPCMobs_data = b'\x00\x00\x00\x00\x01%\x00\x00\x00\x00\x00\x97\xe3G\x00\xa0\x16F\x00s\x1c\x00\x00]\x02\x00\x00\x01\x00\x00\x00\x00\x00\x00'
-        # self.tile_entities_data = b'\x00\x00\x00\x00'
         self.town_manager_data = b'\x00\x00\x00\x00'
         self.bestiary_data = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         self.creative_power_data = b'\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00\x00\x01\t\x00\x00\x01\n\x00\x00\x01\x0c\x00\x00\x00\x00\x00\x01\r\x00\x00\x00'
 
     def __HeaderFlags_init(self,
                            world_size:str):
-        world_size = world_size.lower()
-        if world_size not in ["small", "medium", "large"]:
-            print("World size unknown. Set to large.")
-            world_size = "large"
         self.title:str = None
         self.seed:str = str(random.randint(0, (1 << 31) - 1)) #random
         self.worldgenversion:int = 1198295875585 #taken
@@ -65,15 +60,24 @@ class TerrariaWorld:
         self.worldid:int = random.randint(0, (1 << 31) - 1) #random
         self.leftworld:float = 0.0 #always float 0.0?
         self.topworld:float = 0.0 #always float 0.0?
-        if world_size == "small":
-            self.tileshigh:int = 1200
-            self.tileswide:int = 4200
-        elif world_size == "medium":
-            self.tileshigh:int = 1800
-            self.tileswide:int = 6400
-        else: #large
-            self.tileshigh:int = 2400
-            self.tileswide:int = 8400
+        if isinstance(world_size, str):
+            world_size = world_size.lower()
+            if world_size not in ["small", "medium", "large"]:
+                print("World size unknown. Set to large.")
+                world_size = "large"
+            if world_size == "small":
+                self.tileshigh:int = 1200
+                self.tileswide:int = 4200
+            elif world_size == "medium":
+                self.tileshigh:int = 1800
+                self.tileswide:int = 6400
+            else: #large
+                self.tileshigh:int = 2400
+                self.tileswide:int = 8400
+        elif isinstance(world_size, tuple):
+            rows, cols = world_size
+            self.tileshigh = rows
+            self.tileswide = cols
         self.bottomworld:float = float(self.tileshigh*16)
         self.rightworld:float = float(self.tileswide*16)
         self.gamemode:int = GameMode.CLASSIC #classic
@@ -88,12 +92,6 @@ class TerrariaWorld:
         self.creationtime:int = -8584768520111393488
         self.moontype:int = 0
         self.treeX:list[int] = [0, 0, 0]
-        # if world_size == "small":
-        #     self.treeX:list[int] = [1754, 4200, 4200]
-        # elif world_size == "medium":
-        #     self.treeX:list[int] = [3194, 5443, 6400]
-        # else:
-        #     self.treeX:list[int] = [3187, 3585, 5542]
         self.treeX0:int = self.treeX[0]
         self.treeX1:int = self.treeX[1]
         self.treeX2:int = self.treeX[2]
@@ -102,12 +100,6 @@ class TerrariaWorld:
         self.treestyle2:int = 0
         self.treestyle3:int = 0
         self.cavebackX:list[int] = [0, 0, 0]
-        # if world_size == "small":
-        #     self.cavebackX:list[int] = [2263, 4200, 4200]
-        # elif world_size == "medium":
-        #     self.cavebackX:list[int] = [1291, 4147, 6400]
-        # else:
-        #     self.cavebackX:list[int] = [3014, 4885, 7204]
         self.cavebackX0:int = self.cavebackX[0]
         self.cavebackX1:int = self.cavebackX[1]
         self.cavebackX2:int = self.cavebackX[2]
@@ -118,21 +110,10 @@ class TerrariaWorld:
         self.icebackstyle:int = 0
         self.junglebackstyle:int = 0
         self.hellbackstyle:int = 0
-        if world_size == "small":
-            self.spawnX:int = 2100
-            self.spawnY:int = 204
-            self.groundlevel:float = 314.0
-            self.rocklevel:float = 416.0
-        elif world_size == "medium":
-            self.spawnX:int = 3200
-            self.spawnY:int = 391
-            self.groundlevel:float = 467.0
-            self.rocklevel:float = 719.0
-        else:
-            self.spawnX:int = 4200
-            self.spawnY:int = 427
-            self.groundlevel:float = 532.0
-            self.rocklevel:float = 904.0
+        self.spawnX = self.tileswide//2
+        self.spawnY = self.tileshigh//6
+        self.groundlevel = float(self.tileshigh/4)
+        self.rocklevel = float(self.tileshigh/3)
         self.time:float = 27000.0
         self.daytime:bool = False
         self.moonphase:int = 0
@@ -140,15 +121,6 @@ class TerrariaWorld:
         self.iseclipse:bool = False
         self.dungeonX:int = 0
         self.dungeonY:int = 0
-        # if world_size == "small":
-        #     self.dungeonX:int = 3441 #taken
-        #     self.dungeonY:int = 243 #taken
-        # elif world_size == "medium":
-        #     self.dungeonX:int = 583 #taken
-        #     self.dungeonY:int = 312 #taken
-        # else: #large
-        #     self.dungeonX:int = 7283 #taken
-        #     self.dungeonY:int = 605 #taken
         self.iscrimson:bool = False
         self.downedboss1eyeofcthulhu:bool = False
         self.downedboss2eaterofworlds:bool = False
@@ -281,6 +253,7 @@ class TerrariaWorld:
         self.fastforwardtimetodusk:bool = False
         self.moondialcooldown:bool = False
 
+    #TODO: maybe updated upon 1.4.5 arrives
     def __getsectioncount(self):
         return 11 if self.version >= 220 else 10
 
@@ -1092,7 +1065,6 @@ class TerrariaWorld:
         stacksize = self.__read_int16(f)
         return Item(netid=netid, prefix=prefix, stacksize=stacksize)
 
-
     def __LoadPressurePlate(self, f) -> list[PressurePlate]:
         count = self.__read_int32(f)
         ret = []
@@ -1126,6 +1098,7 @@ class TerrariaWorld:
                      sprite_colnum:int,
                      frame_X_shift:int=0,
                      frame_Y_shift:int=0):
+        self.tiles.enter_editmode()
         self.tiles.tileinfos[row:row + sprite_rownum, col:col + sprite_colnum, Channel.TILETYPE] = sprite_number
         for r in range(sprite_rownum):
             for c in range(sprite_colnum):
@@ -1161,6 +1134,18 @@ class TerrariaWorld:
         for idx in range(len(item_list)):
             chest.items[idx] = item_list[idx]
         self.chests.append(chest)
+
+    def place_item_frame(self,
+                         row:int,
+                         col:int,
+                         item:Item):
+        self.place_sprite(row, col, TileID.ItemFrame, 2, 2)
+        item_frame_entity = TileEntity(type=TileEntityType.ItemFrame,
+                                       entity_id=len(self.tile_entities),
+                                       posX=col,
+                                       posY=row)
+        item_frame_entity.attribute["item"] = item
+        self.tile_entities.append(item_frame_entity)
 
     def save_world(self,
                    save_file_path:str=None):

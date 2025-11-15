@@ -1,1 +1,5 @@
-leftmost 41 columns, rightmost 42 columns, upmost 41 rows, downmost 42 rows
+INACCESIBLE:
+    leftmost 41 columns, rightmost 42 columns, upmost 41 rows, downmost 42 rows
+
+ADDENDUN:
+    downmost 199 rows are considered underworld, 42 rows ot hem are INACCESIBLE of course.
