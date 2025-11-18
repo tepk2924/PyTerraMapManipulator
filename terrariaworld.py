@@ -14,6 +14,11 @@ class TerrariaWorld:
     #At least making these works for 1.4.4.....
     def __init__(self,
                  world_size:str | tuple = "large"):
+        '''
+        world_size(optional, default = "large"):
+            str: "small"(rows = 1200, cols = 4200) | "medium"(rows = 1800, cols = 6400) | "large"(rows = 1800, cols = 6400)
+            tuple[int, int]: (rows, cols)
+        '''
         #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
         self.version:int = 279 #1.4.4
         self.ischinese:bool = False
@@ -246,8 +251,8 @@ class TerrariaWorld:
         self.fastforwardtimetodusk:bool = False
         self.moondialcooldown:bool = False
 
-    def load_world(self, *args):
-        load_util.load_world(self, *args)
+    def load_world(self, *args, **kwargs):
+        load_util.load_world(self, *args, **kwargs)
 
     def save_world(self, save_file_path:str=None):
         save_util.save_world(self, save_file_path=save_file_path)

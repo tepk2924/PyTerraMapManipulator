@@ -6233,6 +6233,7 @@ class ItemID(IntEnum):
 
 #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
 class WallID(IntEnum):
+    Air = 0
     Stone = 1
     DirtUnsafe = 2
     EbonstoneUnsafe = 3
