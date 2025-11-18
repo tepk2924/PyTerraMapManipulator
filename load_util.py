@@ -18,12 +18,16 @@ class WorldLoadError(Exception):
 
 #TODO: maybe this should be updated upon 1.4.5?
 def load_world(wld:"TerrariaWorld",
-                file_path=None,
-                chest_verbose=False,
-                sign_verbose=False,
-                skip_header_flags=False,
-                skip_tile_data=False,
-                ):
+               file_path=None,
+               chest_verbose=False,
+               sign_verbose=False,
+               tile_entity_verbose=False,
+               skip_header_flags=False,
+               skip_tile_data=False,
+               skip_chest_data=False,
+               skip_sign_data=False,
+               skip_tile_entity_data=False,
+               ):
     if file_path is None:
         file_path = input("Map file path : ")
     with open(file_path, "rb") as f:
@@ -52,23 +56,32 @@ def load_world(wld:"TerrariaWorld",
                 print("Correcting Position Error")
                 f.seek(section_ptrs[2])
 
-        wld.chests = __LoadChestData(f, chest_verbose)
-        if f.tell() != section_ptrs[3]:
-            raise WorldLoadError("Unexpected Position: Invalid Chest Data")
+        if skip_chest_data:
+            f.seek(section_ptrs[3])
+        else:
+            wld.chests = __LoadChestData(f, chest_verbose)
+            if f.tell() != section_ptrs[3]:
+                raise WorldLoadError("Unexpected Position: Invalid Chest Data")
         
-        wld.signs = __LoadSignData(f, sign_verbose)
-        #여기 즈음에 sign 데이터의 tile type이 진짜 표지판의 종류인지 검사하는 코드가 원래 있었음
-        if f.tell() != section_ptrs[4]:
-            raise WorldLoadError("Unexpected Position: Invalid Sign Data")
+        if skip_sign_data:
+            f.seek(section_ptrs[4])
+        else:
+            wld.signs = __LoadSignData(f, sign_verbose)
+            #여기 즈음에 sign 데이터의 tile type이 진짜 표지판의 종류인지 검사하는 코드가 원래 있었음
+            if f.tell() != section_ptrs[4]:
+                raise WorldLoadError("Unexpected Position: Invalid Sign Data")
         
         if wld.version >= 140:
             NPCMobs_data_len = section_ptrs[5] - section_ptrs[4]
             wld.NPCMobs_data = f.read(NPCMobs_data_len)
             if f.tell() != section_ptrs[5]:
                 raise WorldLoadError("Unexpected Position: Invalid Mob and NPC Data")
-            wld.tile_entities = __LoadTileEntity(f)
-            if f.tell() != section_ptrs[6]:
-                raise WorldLoadError("Unexpected Position: Invalid Tile Entities Section")
+            if skip_tile_entity_data:
+                f.seek(section_ptrs[6])
+            else:
+                wld.tile_entities = __LoadTileEntity(f, tile_entity_verbose)
+                if f.tell() != section_ptrs[6]:
+                    raise WorldLoadError("Unexpected Position: Invalid Tile Entities Section")
         else:
             NPCMobs_data_len = section_ptrs[5] - section_ptrs[4]
             wld.NPCMobs_data = f.read(NPCMobs_data_len)
@@ -603,7 +616,7 @@ def __deserializetiledata(f, tileframeimportant, version) -> tuple[list, int]:
     
     return single_tile, rle
 
-def __LoadChestData(f, chest_verbose) -> list[Chest]:
+def __LoadChestData(f:io.BufferedReader, chest_verbose) -> list[Chest]:
     total_chests = read_int16(f)
     max_items = read_int16(f)
     CHEST_MAX = 40
@@ -615,7 +628,7 @@ def __LoadChestData(f, chest_verbose) -> list[Chest]:
         items_per_chest = max_items
         overflowitems = 0
 
-    chests = []
+    ret_chests = []
 
     for i in range(total_chests):
         X = read_int32(f)
@@ -641,18 +654,18 @@ def __LoadChestData(f, chest_verbose) -> list[Chest]:
                 read_int32(f)
                 read_uint8(f)
         
-        chests.append(chest)
+        ret_chests.append(chest)
     
     if chest_verbose:
-        for chest in chests:
+        for chest in ret_chests:
             print(chest)
 
-    return chests
+    return ret_chests
 
-def __LoadSignData(f, sign_verbose) -> list[Sign]:
+def __LoadSignData(f:io.BufferedReader, sign_verbose) -> list[Sign]:
     totalsigns = read_int16(f)
 
-    signs = []
+    ret_signs = []
 
     for i in range(totalsigns):
         text = read_string(f)
@@ -660,17 +673,18 @@ def __LoadSignData(f, sign_verbose) -> list[Sign]:
         y = read_int32(f)
         sign = Sign(text, x, y)
 
-        signs.append(sign)
+        ret_signs.append(sign)
     
     if sign_verbose:
-        for sign in signs:
+        for sign in ret_signs:
             print(sign)        
 
-    return signs
+    return ret_signs
 
-def __LoadTileEntity(f:io.BufferedReader) -> list[TileEntity]:
+#TODO: maybe this should be updated upon 1.4.5?
+def __LoadTileEntity(f:io.BufferedReader, tile_entity_verbose) -> list[TileEntity]:
     count = read_int32(f)
-    ret = []
+    ret_entities = []
     for counter in range(count):
         entity_type = read_uint8(f)
         entity_id = read_int32(f)
@@ -684,8 +698,8 @@ def __LoadTileEntity(f:io.BufferedReader) -> list[TileEntity]:
         if entity_type == TileEntityType.TrainingDummy:
             entity.attribute["npc"] = read_int16(f)
         elif entity_type in [TileEntityType.ItemFrame,
-                                TileEntityType.WeaponRack,
-                                TileEntityType.FoodPlatter]:
+                             TileEntityType.WeaponRack,
+                             TileEntityType.FoodPlatter]:
             entity.attribute["item"] = __LoadItem4TileEntity(f)
         elif entity_type == TileEntityType.LogicSensor:
             entity.attribute["logiccheck"] = read_uint8(f)
@@ -719,8 +733,12 @@ def __LoadTileEntity(f:io.BufferedReader) -> list[TileEntity]:
             pass
         else:
             raise WorldLoadError("Unknown TileEntity Type.")
-        ret.append(entity)
-    return ret
+        ret_entities.append(entity)
+    
+    if tile_entity_verbose:
+        for entity in ret_entities:
+            print(entity)
+    return ret_entities
 
 def __LoadItem4TileEntity(f) -> Item:
     netid = read_int16(f)
