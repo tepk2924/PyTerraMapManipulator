@@ -152,12 +152,14 @@ color_scheme = np.int32((5*x + 3*y)/100)%12 + 13
 color_scheme = color_scheme*result
 color_scheme = np.where(color_scheme == 0, Paint.NEGATIVE, color_scheme)
 
-world = TerrariaWorld(world_size = "small")
+MARGIN = 50
+world = TerrariaWorld(world_size = (MARGIN + SIZE + MARGIN, MARGIN + SIZE + MARGIN))
 world.tiles.enter_editmode()
+world.spawnX = MARGIN + SIZE//2
+world.spawnY = MARGIN + SIZE//2
 
-COL = world.tileswide
-world.tiles.tileinfos[200:200 + SIZE, COL//2 - SIZE//2:COL//2 - SIZE//2 + SIZE, Channel.WALL] = WallID.DiamondGemspark
-world.tiles.tileinfos[200:200 + SIZE, COL//2 - SIZE//2:COL//2 - SIZE//2 + SIZE, Channel.WALLCOLOR] = color_scheme
+world.tiles.tileinfos[MARGIN:MARGIN + SIZE, MARGIN:MARGIN + SIZE, Channel.WALL] = WallID.DiamondGemspark
+world.tiles.tileinfos[MARGIN:MARGIN + SIZE, MARGIN:MARGIN + SIZE, Channel.WALLCOLOR] = color_scheme
 world.tiles.exit_editmode()
 
 world.save_world("magic_circle")
