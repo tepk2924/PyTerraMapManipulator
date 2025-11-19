@@ -23,6 +23,9 @@ class vec2:
     def __repr__(self):
         return f"({self.r}, {self.c})"
 
+def unit(angle):
+    return vec2(np.cos(angle), np.sin(angle))
+
 def get_boundary(arr:np.ndarray) -> np.ndarray:
     rows, cols = arr.shape
     colvec_zero = np.zeros((rows, 1))
@@ -63,27 +66,30 @@ c = np.tile(np.expand_dims(arange_size, axis=0), (SIZE, 1))
 
 x = r - SIZE//2
 y = c - SIZE//2
+sq = x**2 + y**2
 
 big_radius = 400
-big_circle = np.where(x**2 + y**2 <= big_radius**2, 1, 0)
+big_circle = np.where(sq <= big_radius**2, 1, 0)
 result += get_boundary(big_circle)
 
 ec_1 = [250, 75]
 ec_2 = [262.5, 78.5]
 ec_3 = [275, 82]
 for angle in np.linspace(0, np.pi, 6, False):
-    ellipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_1[0])**2 +
-                       ((-x*np.sin(angle) + y*np.cos(angle))/ec_1[1])**2 <= 1, 1, 0)
+    rot_x = x*np.cos(angle) + y*np.sin(angle)
+    rot_y = -x*np.sin(angle) + y*np.cos(angle)
+    ellipse = np.where((rot_x/ec_1[0])**2 +
+                       (rot_y/ec_1[1])**2 <= 1, 1, 0)
     result += get_boundary(ellipse)
-    ellipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_2[0])**2 +
-                       ((-x*np.sin(angle) + y*np.cos(angle))/ec_2[1])**2 <= 1, 1, 0)
+    ellipse = np.where((rot_x/ec_2[0])**2 +
+                       (rot_y/ec_2[1])**2 <= 1, 1, 0)
     result += get_boundary(ellipse)
-    ellipse = np.where(((x*np.cos(angle) + y*np.sin(angle))/ec_3[0])**2 +
-                       ((-x*np.sin(angle) + y*np.cos(angle))/ec_3[1])**2 <= 1, 1, 0)
+    ellipse = np.where((rot_x/ec_3[0])**2 +
+                       (rot_y/ec_3[1])**2 <= 1, 1, 0)
     result += get_boundary(ellipse)
 
-annulus_1 = np.where(270**2 <= x**2 + y**2, 1, 0)*np.where(x**2 + y**2 <= 290**2, 1, 0)
-annulus_2 = np.where(335**2 <= x**2 + y**2, 1, 0)*np.where(x**2 + y**2 <= 345**2, 1, 0)
+annulus_1 = np.where((270**2 <= sq) & (sq <= 290**2), 1, 0)
+annulus_2 = np.where((335**2 <= sq) & (sq <= 345**2), 1, 0)
 result += annulus_1
 result += annulus_2
 
@@ -98,11 +104,12 @@ small_circle = get_boundary(np.where(x_small**2 + y_small**2 <= 15**2, 1, 0))
 for angle in np.linspace(0, 2*np.pi, 24, False):
     center_R = int(450 + 368*np.cos(angle))
     center_C = int(450 + 368*np.sin(angle))
+    center_vec = vec2(center_R, center_C)
     result[center_R - 20:center_R + 21, center_C - 20:center_C + 21] += small_circle
-    pt1 = vec2(center_R + 15*np.cos(angle), center_C + 15*np.sin(angle))
-    pt2 = vec2(center_R + 15*np.cos(angle + np.pi/2), center_C + 15*np.sin(angle + np.pi/2))
-    pt3 = vec2(center_R + 15*np.cos(angle + np.pi), center_C + 15*np.sin(angle + np.pi))
-    pt4 = vec2(center_R + 15*np.cos(angle + 3*np.pi/2), center_C + 15*np.sin(angle + 3*np.pi/2))
+    pt1 = center_vec + 15*unit(angle)
+    pt2 = center_vec + 15*unit(angle + np.pi/2)
+    pt3 = center_vec + 15*unit(angle + np.pi)
+    pt4 = center_vec + 15*unit(angle + 3*np.pi/2)
     draw_line_seg(result, pt1, pt2)
     draw_line_seg(result, pt2, pt3)
     draw_line_seg(result, pt3, pt4)
@@ -113,20 +120,21 @@ for angle in np.linspace(0, 2*np.pi, 24, False):
 for idx in range(0, 75, 15):
     result += np.where(np.abs(x) + np.abs(y) == idx, 1, 0)
 
+O = vec2(SIZE//2, SIZE//2)
 for angle in np.linspace(0, 2*np.pi, 12, False):
-    result += np.where((x - 170*np.cos(angle))**2 + (y - 170*np.sin(angle))**2 <= 40**2, 1, 0) * np.where((x - 181*np.cos(angle))**2 + (y - 181*np.sin(angle))**2 >= 30**2, 1, 0)
+    result += np.where(((x - 170*np.cos(angle))**2 + (y - 170*np.sin(angle))**2 <= 40**2) & ((x - 181*np.cos(angle))**2 + (y - 181*np.sin(angle))**2 >= 30**2), 1, 0)
     draw_line_seg(result,
-                  vec2(450, 450),
-                  vec2(450 + 270*np.cos(angle), 450 + 270*np.sin(angle)))
+                  O,
+                  O + 270*unit(angle))
     draw_line_seg(result,
-                  vec2(450 + 150*np.cos(angle) + 10*np.sin(angle), 450 + 150*np.sin(angle) - 10*np.cos(angle)),
-                  vec2(450 + 270*np.cos(angle) + 10*np.sin(angle), 450 + 270*np.sin(angle) - 10*np.cos(angle)))
+                  O + 150*unit(angle) + 10*unit(angle + np.pi/2),
+                  O + 270*unit(angle) + 10*unit(angle + np.pi/2))
     draw_line_seg(result,
-                  vec2(450 + 150*np.cos(angle) - 10*np.sin(angle), 450 + 150*np.sin(angle) + 10*np.cos(angle)),
-                  vec2(450 + 270*np.cos(angle) - 10*np.sin(angle), 450 + 270*np.sin(angle) + 10*np.cos(angle)))
+                  O + 150*unit(angle) + 10*unit(angle - np.pi/2),
+                  O + 270*unit(angle) + 10*unit(angle - np.pi/2))
     draw_line_seg(result,
-                  vec2(450 + 180*np.cos(angle) + 30*np.sin(angle), 450 + 180*np.sin(angle) - 30*np.cos(angle)),
-                  vec2(450 + 180*np.cos(angle) - 30*np.sin(angle), 450 + 180*np.sin(angle) + 30*np.cos(angle)))
+                  O + 180*unit(angle) + 30*unit(angle + np.pi/2),
+                  O + 180*unit(angle) + 30*unit(angle - np.pi/2))
 
 center_X = 250
 center_Y = 200
@@ -134,7 +142,7 @@ center_R = center_X + 450
 center_C = center_Y + 450
 result += np.where((x - center_X)**2 + (y - center_Y)**2 <= 130**2, 1, 0)
 result *= np.where(120**2 <= (x - center_X)**2 + (y - center_Y)**2, 1, 0)
-pts = [vec2(center_R + 120*np.cos(angle), center_C + 120*np.sin(angle)) for angle in np.linspace(0, 2*np.pi, 8, False)]
+pts = [vec2(center_R, center_C) + 120*unit(angle) for angle in np.linspace(0, 2*np.pi, 8, False)]
 for _ in range(10):
     new_pts = []
     for idx in range(8):

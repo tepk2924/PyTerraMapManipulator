@@ -64,12 +64,47 @@ c = np.tile(np.expand_dims(arange_size, axis=0), (SIZE, 1))
 x = r - SIZE//2
 y = c - SIZE//2
 
-result += np.where(x**2 + y**2 <= 350**2, 1, 0) * np.where(x**2 + y**2 >= 340**2, 1, 0)
+sq = x**2 + y**2
+d = np.sqrt(sq)
+theta = np.atan2(y, x)
 
-disk = np.where(x**2 + y**2 <= 340**2, 1, 0)
+result += np.where((sq <= 400**2) & (sq >= 390**2), 1, 0)
+
+star = np.where(sq <= 390**2, 1, 0)
 for angle in np.linspace(0, 2*np.pi, 5, False):
-    disk *= np.where((x - 405*np.cos(angle))**2 + (y - 405*np.sin(angle))**2 >= 238**2, 1, 0)
-result += disk
+    star *= np.where((x - 470*np.cos(angle))**2 + (y - 470*np.sin(angle))**2 >= 276**2, 1, 0)
+result += star
+
+def pentagon_ring(A, B):
+    ret = np.zeros((SIZE, SIZE))
+    for angle in np.linspace(0, 2*np.pi, 5, False):
+        ret += np.where((x - A*np.cos(angle))**2 + (y - A*np.sin(angle))**2 <= B**2, 1, 0)
+    Ax = A*np.cos(np.pi/5)
+    Ay = A*np.sin(np.pi/5)
+    for angle in np.linspace(0, 2*np.pi, 5, False):
+        x_rot = x*np.cos(angle + np.pi/5) + y*np.sin(angle + np.pi/5)
+        y_rot = -x*np.sin(angle + np.pi/5) + y*np.cos(angle + np.pi/5)
+        ret += np.where((x_rot <= Ax + B) & (x_rot >= Ax - B) & (y_rot <= Ay) & (y_rot >= -Ay), 1, 0)
+    ret = np.where(ret >= 1, 1, 0)
+    return ret
+
+result = np.where(pentagon_ring(160, 30) == 1, 0, result)
+result += pentagon_ring(160, 20)
+result = np.where(pentagon_ring(160, 10) == 1, 0, result)
+
+result = np.where(100*np.abs(np.cos(2.5*theta)) >= d, 0, result)
+result += np.where(90*np.abs(np.cos(2.5*theta)) >= d, 1, 0)
+result = np.where(80*np.abs(np.cos(2.5*theta)) >= d, 0, result)
+result += np.where(70*np.abs(np.cos(2.5*theta)) >= d, 1, 0)
+result = np.where(60*np.abs(np.cos(2.5*theta)) >= d, 0, result)
+result += np.where(50*np.abs(np.cos(2.5*theta)) >= d, 1, 0)
+
+for angle in np.linspace(0, 2*np.pi, 5, False):
+    x_rot = x*np.cos(angle + np.pi/5) + y*np.sin(angle + np.pi/5)
+    result = np.where((x_rot >= 170) &
+                      ((x - 470*np.cos(angle))**2 + (y - 470*np.sin(angle))**2 >= 286**2) &
+                      ((x - 470*np.cos(angle + 2*np.pi/5))**2 + (y - 470*np.sin(angle + 2*np.pi/5))**2 >= 286**2), 0, result)
+
 
 result = np.where(result >= 1, 1, 0)
 
