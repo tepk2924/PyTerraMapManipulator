@@ -23,6 +23,9 @@ class vec2:
     def __repr__(self):
         return f"({self.r}, {self.c})"
 
+def unit(angle):
+    return vec2(np.cos(angle), np.sin(angle))
+
 def get_boundary(arr:np.ndarray) -> np.ndarray:
     rows, cols = arr.shape
     colvec_zero = np.zeros((rows, 1))
@@ -75,6 +78,17 @@ for angle in np.linspace(0, 2*np.pi, 5, False):
     star *= np.where((x - 470*np.cos(angle))**2 + (y - 470*np.sin(angle))**2 >= 276**2, 1, 0)
 result += star
 
+O = vec2(SIZE//2, SIZE//2)
+arr = [273, 276, 284, 288, 292, 296, 300, 308, 311]
+for a in arr:
+    for angle in np.linspace(0, 2*np.pi, 5, False):
+        draw_line_seg(result,
+                      O + a*unit(angle),
+                      O + a*unit(angle + 2*np.pi/5))
+        draw_line_seg(result,
+                      O + a*unit(angle),
+                      O + a*unit(angle + 4*np.pi/5))
+
 def pentagon_ring(A, B):
     ret = np.zeros((SIZE, SIZE))
     for angle in np.linspace(0, 2*np.pi, 5, False):
@@ -105,6 +119,43 @@ for angle in np.linspace(0, 2*np.pi, 5, False):
                       ((x - 470*np.cos(angle))**2 + (y - 470*np.sin(angle))**2 >= 286**2) &
                       ((x - 470*np.cos(angle + 2*np.pi/5))**2 + (y - 470*np.sin(angle + 2*np.pi/5))**2 >= 286**2), 0, result)
 
+for angle in np.linspace(0, 2*np.pi, 5, False):
+    result += np.where(((x - 292*np.cos(angle))**2 + (y - 292*np.sin(angle))**2 >= 98**2) & 
+                       ((x - 292*np.cos(angle))**2 + (y - 292*np.sin(angle))**2 <= 108**2), 1, 0)
+
+for angle1 in np.linspace(0, 2*np.pi, 5, False):
+    for angle2 in np.linspace(0, 2*np.pi, 10, False):
+        draw_line_seg(result,
+                      O + 292*unit(angle1) + 103*unit(angle2),
+                      O + 292*unit(angle1) + 103*unit(angle2 + 4*np.pi/5))
+        draw_line_seg(result,
+                      O + 292*unit(angle1) + 103*unit(angle2 + np.pi/10),
+                      O + 292*unit(angle1) + 103*unit(angle2 + 9*np.pi/10))
+
+for angle in np.linspace(0, 2*np.pi, 5, False):
+    rel_x_alpha = x - 342*np.cos(0.466 + angle)
+    rel_y_alpha = y - 342*np.sin(0.466 + angle)
+    sq_alpha = rel_x_alpha**2 + rel_y_alpha**2
+    dist_alpha = np.sqrt(sq_alpha)
+    theta_alpha = np.atan2(rel_y_alpha, rel_x_alpha)
+    result += np.where(sq_alpha <= 57**2, 1, 0)
+    result = np.where(sq_alpha <= 47**2, 0, result)
+    result += np.where((30 + 10*np.cos(5*(theta_alpha - 0.466 - angle)) >= dist_alpha) & 
+                       (20 + 10*np.cos(5*(theta_alpha - 0.466 - angle)) <= dist_alpha), 1, 0)
+
+    rel_x_beta = x - 342*np.cos(-0.466 + angle)
+    rel_y_beta = y - 342*np.sin(-0.466 + angle)
+    sq_beta = rel_x_beta**2 + rel_y_beta**2
+    dist_beta = np.sqrt(sq_beta)
+    theta_beta = np.atan2(rel_y_beta, rel_x_beta)
+    result += np.where(sq_beta <= 57**2, 1, 0)
+    result = np.where(sq_beta <= 47**2, 0, result)
+    result += np.where((30 + 10*np.cos(5*(theta_beta + 0.466 - angle)) >= dist_beta) & 
+                       (20 + 10*np.cos(5*(theta_beta + 0.466 - angle)) <= dist_beta), 1, 0)
+
+for angle in np.linspace(0, 2*np.pi, 5, False):
+    result += np.where((x - 210*np.cos(angle + np.pi/5))**2 + (y - 210*np.sin(angle + np.pi/5))**2 <= 48**2, 1, 0)
+    result = np.where((x - 210*np.cos(angle + np.pi/5))**2 + (y - 210*np.sin(angle + np.pi/5))**2 <= 43**2, 0, result)
 
 result = np.where(result >= 1, 1, 0)
 
