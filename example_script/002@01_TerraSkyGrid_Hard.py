@@ -10,6 +10,9 @@ from chest import Item
 world = TerrariaWorld()
 world.gamemode = GameMode.MASTER
 
+world.spawnX = 4202
+world.spawnY = 397
+
 blocklist = []
 
 for idx in range(len(world.tileframeimportant)):
@@ -26,6 +29,13 @@ for r in range(ROW):
     for c in range(COL):
         tile[5*r + 3, 5*c + 2] = random.choice(blocklist)
 world.tiles.tileinfos[:, :, Channel.TILETYPE] = tile
+
+world.tiles.tileinfos[398, 4197, Channel.TILETYPE] = TileID.Grass
+world.tiles.tileinfos[398, 4202, Channel.TILETYPE] = TileID.Grass
+world.tiles.tileinfos[398, 4207, Channel.TILETYPE] = TileID.Grass
+world.tiles.tileinfos[393, 4197, Channel.TILETYPE] = TileID.Grass
+world.tiles.tileinfos[393, 4202, Channel.TILETYPE] = TileID.Grass
+world.tiles.tileinfos[393, 4207, Channel.TILETYPE] = TileID.Grass
 
 #Generate Dungeon
 '''
