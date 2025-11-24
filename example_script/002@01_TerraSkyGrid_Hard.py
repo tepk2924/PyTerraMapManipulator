@@ -58,7 +58,7 @@ states[220:232, 1160:1180] = 1
 states[79:89, 830:850] = 1
 
 #Generate Water
-for _ in range(2000):
+for _ in range(200):
     while True:
         r = random.randint(10, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -73,7 +73,7 @@ for _ in range(2000):
     states[r, c] = 1
 
 #Generate Lava
-for _ in range(1000):
+for _ in range(100):
     while True:
         r = random.randint(10, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -88,7 +88,7 @@ for _ in range(1000):
     states[r, c] = 1
 
 #Generate Honey
-for _ in range(500):
+for _ in range(50):
     while True:
         r = random.randint(10, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -103,7 +103,7 @@ for _ in range(500):
     states[r, c] = 1
 
 #Generating Altars
-for _ in range(50):
+for _ in range(10):
     while True:
         r = random.randint(10, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -112,7 +112,7 @@ for _ in range(50):
     world.place_sprite(5*r + 1, 5*c + 1, TileID.DemonAltar, 2, 3) #Corruption Altar
     world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Channel.TILETYPE] = TileID.Ebonstone #Ebonstone Block
     states[r, c] = 1
-for _ in range(50):
+for _ in range(10):
     while True:
         r = random.randint(10, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -123,7 +123,7 @@ for _ in range(50):
     states[r, c] = 1
 
 #Generating Hellforges
-for _ in range(25):
+for _ in range(10):
     while True:
         r = random.randint(440, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -133,73 +133,5 @@ for _ in range(25):
     world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 4, Channel.TILETYPE] = TileID.ObsidianBrick #Obsidian Brick
     states[r, c] = 1
 
-#Generating Orbs / Hearts
-for _ in range(15):
-    while True:
-        r = random.randint(10, ROW - 10)
-        c = random.randint(10, COL - 10)
-        if states[r, c] != 1:
-            break
-    world.place_sprite(5*r + 1, 5*c + 1, TileID.ShadowOrbs, 2, 2) #Orb
-    states[r, c] = 1
-for _ in range(15):
-    while True:
-        r = random.randint(10, ROW - 10)
-        c = random.randint(10, COL - 10)
-        if states[r, c] != 1:
-            break
-    world.place_sprite(5*r + 1, 5*c + 1, TileID.ShadowOrbs, 2, 2, 36, 0) #Heart
-    states[r, c] = 1
-
-#Generating Biome Chests
-while True:
-    r = random.randint(10, ROW - 10)
-    c = random.randint(10, COL - 10)
-    if states[r, c] != 1:
-        break
-world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.VampireKnives)], *ChestFrameXY.CrimsonChestLocked) #Locked Crimson Chest with Vampire Knives
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
-states[r, c] = 1
-while True:
-    r = random.randint(10, ROW - 10)
-    c = random.randint(10, COL - 10)
-    if states[r, c] != 1:
-        break
-world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.StaffoftheFrostHydra)], *ChestFrameXY.FrozenChestLocked) #Locked Ice Chest with Frost Hydra Staff
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
-states[r, c] = 1
-while True:
-    r = random.randint(10, ROW - 10)
-    c = random.randint(10, COL - 10)
-    if states[r, c] != 1:
-        break
-world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.RainbowGun)], *ChestFrameXY.HallowedChestLocked) #Locked Hallow Chest with Rainbow Gun
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
-states[r, c] = 1
-while True:
-    r = random.randint(10, ROW - 10)
-    c = random.randint(10, COL - 10)
-    if states[r, c] != 1:
-        break
-world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.PiranhaGun)], *ChestFrameXY.JungleChestLocked) #Locked Jungle Chest with Piranha Gun
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
-states[r, c] = 1
-while True:
-    r = random.randint(10, ROW - 10)
-    c = random.randint(10, COL - 10)
-    if states[r, c] != 1:
-        break
-world.place_chest_group1(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.ScourgeoftheCorruptor)], *ChestFrameXY.CorruptionChestLocked) #Locked Corruption Chest with Scourge of the Corrupter
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
-states[r, c] = 1
-while True:
-    r = random.randint(10, ROW - 10)
-    c = random.randint(10, COL - 10)
-    if states[r, c] != 1:
-        break
-world.place_chest_group2(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.StormTigerStaff)], *Chest2FrameXY.DesertChestLocked) #Locked Desert Chest with Desert Tiger Staff
-world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
-states[r, c] = 1
-
 world.tiles.exit_editmode()
-world.save_world("TerraSkyGrid")
+world.save_world("TerraSkyGrid_Hard")

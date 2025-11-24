@@ -4,7 +4,7 @@ import random
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
-from enumeration import GameMode, Channel, Liquid, TileID, ItemID, WallID, ChestFrameXY, Chest2FrameXY
+from enumeration import GameMode, Channel, Liquid, TileID, ItemID, WallID, ChestFrameXY, Chest2FrameXY, PrefixID
 from chest import Item
 
 world = TerrariaWorld()
@@ -123,7 +123,7 @@ for _ in range(50):
     states[r, c] = 1
 
 #Generating Hellforges
-for _ in range(25):
+for _ in range(30):
     while True:
         r = random.randint(440, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -134,7 +134,7 @@ for _ in range(25):
     states[r, c] = 1
 
 #Generating Orbs / Hearts
-for _ in range(15):
+for _ in range(20):
     while True:
         r = random.randint(10, ROW - 10)
         c = random.randint(10, COL - 10)
@@ -142,13 +142,24 @@ for _ in range(15):
             break
     world.place_sprite(5*r + 1, 5*c + 1, TileID.ShadowOrbs, 2, 2) #Orb
     states[r, c] = 1
-for _ in range(15):
+for _ in range(20):
     while True:
         r = random.randint(10, ROW - 10)
         c = random.randint(10, COL - 10)
         if states[r, c] != 1:
             break
     world.place_sprite(5*r + 1, 5*c + 1, TileID.ShadowOrbs, 2, 2, 36, 0) #Heart
+    states[r, c] = 1
+
+#Generating Life Crystal
+for _ in range(100):
+    while True:
+        r = random.randint(10, ROW - 10)
+        c = random.randint(10, COL - 10)
+        if states[r, c] != 1:
+            break
+    world.place_sprite(5*r + 1, 5*c + 1, TileID.Heart, 2, 2)
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.Stone
     states[r, c] = 1
 
 #Generating Biome Chests
@@ -201,5 +212,105 @@ world.place_chest_group2(5*r + 1, 5*c + 1, [Item(stacksize=1, netid=ItemID.Storm
 world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.BlueDungeonBrick #Dungeon Brick
 states[r, c] = 1
 
+#Generating Surface Loot Chest
+surface_loot_pool = [
+    Item(stacksize=1, netid=ItemID.Spear),
+    Item(stacksize=1, netid=ItemID.Blowpipe),
+    Item(stacksize=1, netid=ItemID.WoodenBoomerang),
+    Item(stacksize=1, netid=ItemID.Aglet),
+    Item(stacksize=1, netid=ItemID.ClimbingClaws),
+    Item(stacksize=1, netid=ItemID.Umbrella),
+    Item(stacksize=1, netid=ItemID.CordageGuide),
+    Item(stacksize=1, netid=ItemID.WandofSparking),
+    Item(stacksize=1, netid=ItemID.Radar),
+    Item(stacksize=1, netid=ItemID.PortableStool),
+]
+for idx in range(30):
+    while True:
+        r = random.randint(20, 120)
+        c = random.randint(10, COL - 10)
+        if states[r, c] != 1:
+            break
+    world.place_chest_group1(5*r + 1, 5*c + 1, [surface_loot_pool[idx%10]], *ChestFrameXY.WoodenChest)
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.Grass
+    states[r, c] = 1
+
+#Generating Underground + Cavern Loot Chest
+underground_loot_pool = [
+    Item(stacksize=1, netid=ItemID.Extractinator),
+    Item(stacksize=1, netid=ItemID.BandofRegeneration),
+    Item(stacksize=1, netid=ItemID.MagicMirror),
+    Item(stacksize=1, netid=ItemID.CloudinaBottle),
+    Item(stacksize=1, netid=ItemID.HermesBoots),
+    Item(stacksize=1, netid=ItemID.Mace),
+    Item(stacksize=1, netid=ItemID.ShoeSpikes),
+]
+for idx in range(119):
+    while True:
+        r = random.randint(120, 440)
+        c = random.randint(10, COL - 10)
+        if states[r, c] != 1:
+            break
+    world.place_chest_group1(5*r + 1, 5*c + 1, [underground_loot_pool[idx%7]], *ChestFrameXY.GoldChest)
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.Stone
+    states[r, c] = 1
+
+#Generating Sky Loot Chest
+sky_loot_pool = [
+    Item(stacksize=1, netid=ItemID.Starfury),
+    Item(stacksize=1, netid=ItemID.LuckyHorseshoe),
+    Item(stacksize=1, netid=ItemID.CelestialMagnet),
+    Item(stacksize=1, netid=ItemID.SkyMill),
+]
+for idx in range(12):
+    while True:
+        r = random.randint(10, 20)
+        c = random.randint(10, COL - 10)
+        if states[r, c] != 1:
+            break
+    world.place_chest_group1(5*r + 1, 5*c + 1, [sky_loot_pool[idx%4]], *ChestFrameXY.SkywareChest)
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.Sunplate
+    states[r, c] = 1
+
+#Generating Desert Loot Chest
+desert_loot_pool = [
+    Item(stacksize=1, netid=ItemID.MagicConch),
+    Item(stacksize=1, netid=ItemID.MysticCoilSnake),
+    Item(stacksize=1, netid=ItemID.AncientChisel),
+    Item(stacksize=1, netid=ItemID.SandBoots),
+    Item(stacksize=1, netid=ItemID.ThunderSpear),
+    Item(stacksize=1, netid=ItemID.ThunderStaff),
+    Item(stacksize=1, netid=ItemID.CatBast)
+]
+for idx in range(21):
+    while True:
+        r = random.randint(120, 440)
+        c = random.randint(10, COL - 10)
+        if states[r, c] != 1:
+            break
+    world.place_chest_group2(5*r + 1, 5*c + 1, [desert_loot_pool[idx%7]], *Chest2FrameXY.DesertChest)
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.Sandstone
+    states[r, c] = 1
+
+#Generating Jungle Loot Chest
+jungle_loot_pool = [
+    Item(stacksize=1, netid=ItemID.FeralClaws),
+    Item(stacksize=1, netid=ItemID.AnkletoftheWind),
+    Item(stacksize=1, netid=ItemID.StaffofRegrowth),
+    Item(stacksize=1, netid=ItemID.Boomstick),
+    Item(stacksize=1, netid=ItemID.FlowerBoots),
+    Item(stacksize=1, netid=ItemID.FiberglassFishingPole),
+    Item(stacksize=1, netid=ItemID.Seaweed),
+]
+for idx in range(21):
+    while True:
+        r = random.randint(120, 440)
+        c = random.randint(10, COL - 10)
+        if states[r, c] != 1:
+            break
+    world.place_chest_group1(5*r + 1, 5*c + 1, [jungle_loot_pool[idx%7]], *ChestFrameXY.IvyChest)
+    world.tiles.tileinfos[5*r + 3, 5*c + 1:5*c + 3, Channel.TILETYPE] = TileID.JungleGrass
+    states[r, c] = 1
+
 world.tiles.exit_editmode()
-world.save_world("TerraSkyGrid")
+world.save_world("TerraSkyGrid_Easy")
