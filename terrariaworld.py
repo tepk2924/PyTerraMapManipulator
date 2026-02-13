@@ -272,7 +272,7 @@ class TerrariaWorld:
         self.teambasedspawnseed:bool = False
         self.teamspawns:list[tuple[int, int]] = []
         self.dualdungeonseed:bool = False
-        self.worldmanifestdata:str = ""
+        self.worldmanifestdata:str = '{"GenPassResults":[],"Version":null,"GitSHA":null,"FinalHash":null}' #This is FUCKING mandatory somehow
         
     def load_world(self, *args, **kwargs):
         load_util.load_world(self, *args, **kwargs)
