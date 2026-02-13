@@ -11,7 +11,7 @@ from tileentity import TileEntity
 from enumeration import BrickStyle, Liquid, Channel, GameMode, TileID, TileEntityType, ItemID
 
 class TerrariaWorld:
-    #At least making these works for 1.4.4.....
+    #At least making these works for 1.4.5.....
     def __init__(self,
                  world_size:str | tuple = "large"):
         '''
@@ -19,8 +19,7 @@ class TerrariaWorld:
             str: "small"(rows = 1200, cols = 4200) | "medium"(rows = 1800, cols = 6400) | "large"(rows = 1800, cols = 6400)
             tuple[int, int]: (rows, cols)
         '''
-        #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
-        self.version:int = 279 #1.4.4
+        self.version:int = 316 #1.4.5
         self.ischinese:bool = False
         self.filerevision:int = 0
         self.isfavorite:bool = False
@@ -33,14 +32,24 @@ class TerrariaWorld:
         self.tile_entities:list[TileEntity] = []
         self.__initializeotherdata()
 
-    #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
+    def set_world_version(self,
+                          version:str | int):
+        if isinstance(version, int):
+            self.version = version
+        elif isinstance(version, str):
+            if version == "1.4.4":
+                self.version = 279
+            elif version == "1.4.5":
+                self.version = 316
+            else:
+                raise ValueError("the version string must be 1.4.4 or 1.4.5")
+
     def __initializetileframeimportant(self):
         '''
         This decides whether tile type is block or sprite.
         self.tileframeimportant[tiletype] == True means tile of #tiletype is sprite.
-        THIS SHOULE BE UPDATED UPON 1.4.5 ARRIVES AS WELL
         '''
-        self.tileframeimportant:list[bool] = [False, False, False, True, True, True, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, False, False, True, False, True, True, True, True, False, True, False, True, True, True, True, False, False, False, False, False, True, False, False, False, False, False, False, True, True, False, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, True, True, True, True, False, False, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, False, True, True, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, False, False, True, True, True, True, True, True, True, True, False, True, True, True, True, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, False, True, True, False, True, False, False, True, True, True, True, True, True, False, False, False, False, False, False, True, True, False, False, True, False, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, True, True, True, True, True, False, False, True, True, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True, False, False, False, False, False, False, False, False, False, True, False, False, False, False, True, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, False, False, True, True, True, True, True, True, True, False, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, True, True, False, False, False, True, True, True, True, True, False, False, False, False, True, True, False, False, True, True, True, False, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, True, False, False, False, True, False, False, False, True, True, True, True, True, True, True, True, False, True, True, False, False, True, False, True, False, False, False, False, False, True, True, False, False, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, False, False, False, False, True, False, False, False, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, False, False, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, False, False, False, False, True, True, True, True, False, True, False, False, True, False, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, True, False, False, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
+        self.tileframeimportant:list[bool] = [False, False, False, True, True, True, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, False, False, True, False, True, True, True, True, False, True, False, True, True, True, True, False, False, False, False, False, True, False, False, False, False, False, False, True, True, False, False, False, False, True, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, True, True, True, True, False, False, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, False, True, True, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, False, False, True, True, True, True, True, True, True, True, False, True, True, True, True, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, True, False, False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, True, False, True, True, False, True, False, False, True, True, True, True, True, True, False, False, False, False, False, False, True, True, False, False, True, False, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, False, True, True, True, True, True, False, False, True, True, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True, False, False, False, False, False, False, False, False, False, True, False, False, False, False, True, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, False, False, True, True, True, True, True, True, True, False, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, False, False, False, True, True, False, False, False, True, True, True, True, True, False, False, False, False, True, True, False, False, True, True, True, False, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False, True, True, False, False, False, True, False, False, False, True, True, True, True, True, True, True, True, False, True, True, False, False, True, False, True, False, False, False, False, False, True, True, False, False, True, True, True, False, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, False, False, False, False, True, False, False, False, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, False, False, True, True, False, True, True, True, True, True, True, True, False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, False, False, False, False, True, True, True, True, False, True, False, False, True, False, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True, False, True, True, True, False, True, False, False, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, True, True, False, True, True, True, True, True, True, True, True, True, True, False, True, True, True, True, True, True, True, True, False, False, False, True, True, False, True, True, True, True, False, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True]
 
     def __initializeotherdata(self):
         self.NPCMobs_data = b'\x00\x00\x00\x00\x01%\x00\x00\x00\x00\x00\x97\xe3G\x00\xa0\x16F\x00s\x1c\x00\x00]\x02\x00\x00\x01\x00\x00\x00\x00\x00\x00'
@@ -87,7 +96,9 @@ class TerrariaWorld:
         self.remixworld:bool = False
         self.notrapworld:bool = False
         self.zenithworld:bool = False
+        self.skyblockworld:bool = False
         self.creationtime:int = -8584768520111393488
+        self.lastplayed:int = -8584768520111393488
         self.moontype:int = 0
         self.treeX:list[int] = [0, 0, 0]
         self.treeX0:int = self.treeX[0]
@@ -175,7 +186,9 @@ class TerrariaWorld:
         self.savedgolfer:bool = False
         self.invasionsizestart:int = 0
         self.cultistdelay:int = 0
+        #TODO: 1.4.5, Update the length.
         self.killedmobs:list[int] = [0]*688
+        self.claimablebanners:list[int] = [0]*688
         self.fastforwardtime:bool = False
         self.downedfishron:bool = False
         self.downedmartians:bool = False
@@ -250,7 +263,17 @@ class TerrariaWorld:
         self.unlockedslimecopperspawn:bool = False
         self.fastforwardtimetodusk:bool = False
         self.moondialcooldown:bool = False
-
+        self.forcehalloweenforever:bool = False
+        self.forcexmasforever:bool = False
+        self.vampireseed:bool = False
+        self.infectedseed:bool = False
+        self.tempmeteorshowercount:int = 0
+        self.tempcoinrain:int = 0
+        self.teambasedspawnseed:bool = False
+        self.teamspawns:list[tuple[int, int]] = []
+        self.dualdungeonseed:bool = False
+        self.worldmanifestdata:str = ""
+        
     def load_world(self, *args, **kwargs):
         load_util.load_world(self, *args, **kwargs)
 

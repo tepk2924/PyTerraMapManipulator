@@ -6748,7 +6748,6 @@ class PrefixID(IntEnum):
     Unreal = 82
     Mythical = 83
 
-#TODO: maybe this should be updated upon 1.4.5?
 class TileEntityType(IntEnum):
     TrainingDummy = 0
     ItemFrame = 1
@@ -6758,3 +6757,6 @@ class TileEntityType(IntEnum):
     HatRack = 5
     FoodPlatter = 6
     TeleportationPylon = 7
+    DeadCellsDisplayJar = 8
+    KiteAnchor = 9
+    CritterAnchor = 10

@@ -59,7 +59,7 @@ def load_world(wld:"TerrariaWorld",
         if skip_chest_data:
             f.seek(section_ptrs[3])
         else:
-            wld.chests = __LoadChestData(f, chest_verbose)
+            wld.chests = __LoadChestData(wld, f, chest_verbose)
             if f.tell() != section_ptrs[3]:
                 raise WorldLoadError("Unexpected Position: Invalid Chest Data")
         
@@ -79,7 +79,7 @@ def load_world(wld:"TerrariaWorld",
             if skip_tile_entity_data:
                 f.seek(section_ptrs[6])
             else:
-                wld.tile_entities = __LoadTileEntity(f, tile_entity_verbose)
+                wld.tile_entities = __LoadTileEntity(wld, f, tile_entity_verbose)
                 if f.tell() != section_ptrs[6]:
                     raise WorldLoadError("Unexpected Position: Invalid Tile Entities Section")
         else:
@@ -114,7 +114,6 @@ def load_world(wld:"TerrariaWorld",
         
         __LoadFooter(wld, f)            
 
-#TODO: maybe this should be updated upon 1.4.5?
 def __LoadSectionHeader(wld:"TerrariaWorld", f:io.BufferedReader):
     #loading section header
     if wld.version >= 140:
@@ -156,7 +155,6 @@ def __LoadHeaderFlags(wld:"TerrariaWorld", f:io.BufferedReader):
 
     if wld.version >= 179:
         if wld.version == 179:
-            #TODO: ???
             wld.seed = str(read_int32(f))
         else:
             wld.seed = read_string(f)
@@ -187,6 +185,7 @@ def __LoadHeaderFlags(wld:"TerrariaWorld", f:io.BufferedReader):
         if wld.version >= 249: wld.remixworld = read_boolean(f)
         if wld.version >= 266: wld.notrapworld = read_boolean(f)
         wld.zenithworld = (wld.remixworld and wld.drunkworld) if wld.version < 267 else read_boolean(f)
+        if wld.version >= 302: wld.skyblockworld = read_boolean(f)
     elif wld.version == 208:
         wld.gamemode = 2 if read_boolean(f) else 0
     elif wld.version == 112:
@@ -195,6 +194,7 @@ def __LoadHeaderFlags(wld:"TerrariaWorld", f:io.BufferedReader):
         wld.gamemode = 0
 
     wld.creationtime = read_int64(f) if wld.version >= 141 else int(datetime.datetime.now().timestamp())
+    wld.lastplayed = read_int64(f) if wld.version >= 284 else int(datetime.datetime.now())
 
     wld.moontype = read_uint8(f)
     wld.treeX[0] = read_int32(f)
@@ -314,10 +314,7 @@ def __LoadHeaderFlags(wld:"TerrariaWorld", f:io.BufferedReader):
 
     if wld.version < 109: return
 
-    wld.killedmobs.clear()
-    number_of_mobs = read_int16(f)
-    for _ in range(number_of_mobs):
-        wld.killedmobs.append(read_int32(f))
+    __LoadBanners(wld, f)
     
     if wld.version < 128: return
 
@@ -474,7 +471,58 @@ def __LoadHeaderFlags(wld:"TerrariaWorld", f:io.BufferedReader):
         wld.fastforwardtimetodusk = read_boolean(f)
         wld.moondialcooldown = read_uint8(f)
     
+    if wld.version >= 287:
+        wld.forcehalloweenforever = read_boolean(f)
+        wld.forcexmasforever = read_boolean(f)
+    else:
+        wld.forcehalloweenforever = False
+        wld.forcexmasforever = False
+    if wld.version >= 288:
+        wld.vampireseed = read_boolean(f)
+    if wld.version >= 296:
+        wld.infectedseed = read_boolean(f)
+    if wld.version >= 291:
+        wld.tempmeteorshowercount = read_int32(f)
+        wld.tempcoinrain = read_int32(f)
+    else:
+        wld.tempmeteorshowercount = 0
+        wld.tempcoinrain = 0
+    if wld.version >= 297:
+        wld.teambasedspawnseed = read_boolean(f)
+        __LoadTeamSpawns(wld, f)
+    else:
+        wld.teambasedspawnseed = False
+        wld.teamspawns.clear()
+    
+    wld.dualdungeonseed = wld.version >= 304 and read_boolean(f)
+
+    if 299 <= wld.version < 313:
+        read_uint32(f)
+    if wld.version >= 299:
+        wld.worldmanifestdata = read_string(f)
+
     return
+
+def __LoadBanners(wld:"TerrariaWorld",
+                  f:io.BufferedReader):
+    wld.killedmobs.clear()
+    number_of_mobs = read_int16(f)
+    for _ in range(number_of_mobs):
+        wld.killedmobs.append(read_int32(f))
+    if wld.version < 289: return
+    wld.claimablebanners.clear()
+    claimablebannercount = read_int16(f)
+    for _ in range(claimablebannercount):
+        wld.claimablebanners.append(read_int16(f))
+
+def __LoadTeamSpawns(wld:"TerrariaWorld",
+                     f:io.BufferedReader):
+    wld.teamspawns.clear()
+    l = read_uint8(f)
+    for _ in range(l):
+        x = read_int16(f)
+        y = read_int16(f)
+        wld.teamspawns.append((x, y))
 
 def __LoadTileData(f:io.BufferedReader,
                     maxX:int,
@@ -504,7 +552,6 @@ def __LoadTileData(f:io.BufferedReader,
     sys.stdout.write(f"loading tile {total_tiles}/{total_tiles} done... [{"="*barlen}]\n")
     return tiles
 
-#TODO: maybe this should be updated upon 1.4.5?
 def __deserializetiledata(f, tileframeimportant, version) -> tuple[list, int]:
     single_tile = [0]*19
     tiletype = -1
@@ -616,17 +663,20 @@ def __deserializetiledata(f, tileframeimportant, version) -> tuple[list, int]:
     
     return single_tile, rle
 
-def __LoadChestData(f:io.BufferedReader, chest_verbose) -> list[Chest]:
+def __LoadChestData(wld:"TerrariaWorld", f:io.BufferedReader, chest_verbose) -> list[Chest]:
     total_chests = read_int16(f)
-    max_items = read_int16(f)
-    CHEST_MAX = 40
-
-    if max_items > CHEST_MAX:
-        items_per_chest = CHEST_MAX
-        overflowitems = max_items - CHEST_MAX
+    if wld.version < 294:
+        max_items = read_int16(f)
     else:
-        items_per_chest = max_items
-        overflowitems = 0
+        max_items = 40
+    # CHEST_MAX = 40
+
+    # if max_items > CHEST_MAX:
+    #     items_per_chest = CHEST_MAX
+    #     overflowitems = max_items - CHEST_MAX
+    # else:
+    #     items_per_chest = max_items
+    #     overflowitems = 0
 
     ret_chests = []
 
@@ -636,7 +686,9 @@ def __LoadChestData(f:io.BufferedReader, chest_verbose) -> list[Chest]:
         name = read_string(f)
         chest = Chest(X, Y, name)
 
-        for slot in range(items_per_chest):
+        if wld.version >= 294:
+            chest.maxitems = read_int32(f) #always 40
+        for slot in range(chest.maxitems):
             stacksize = read_int16(f)
             chest.items[slot].stacksize = stacksize
 
@@ -648,11 +700,11 @@ def __LoadChestData(f:io.BufferedReader, chest_verbose) -> list[Chest]:
                 chest.items[slot].stacksize = stacksize
                 chest.items[slot].prefix = prefix
     
-        for overflow in range(overflowitems):
-            stacksize = read_int16(f)
-            if stacksize > 0:
-                read_int32(f)
-                read_uint8(f)
+        # for overflow in range(overflowitems):
+        #     stacksize = read_int16(f)
+        #     if stacksize > 0:
+        #         read_int32(f)
+        #         read_uint8(f)
         
         ret_chests.append(chest)
     
@@ -682,7 +734,7 @@ def __LoadSignData(f:io.BufferedReader, sign_verbose) -> list[Sign]:
     return ret_signs
 
 #TODO: maybe this should be updated upon 1.4.5?
-def __LoadTileEntity(f:io.BufferedReader, tile_entity_verbose) -> list[TileEntity]:
+def __LoadTileEntity(wld: "TerrariaWorld", f:io.BufferedReader, tile_entity_verbose) -> list[TileEntity]:
     count = read_int32(f)
     ret_entities = []
     for counter in range(count):
@@ -699,7 +751,8 @@ def __LoadTileEntity(f:io.BufferedReader, tile_entity_verbose) -> list[TileEntit
             entity.attribute["npc"] = read_int16(f)
         elif entity_type in [TileEntityType.ItemFrame,
                              TileEntityType.WeaponRack,
-                             TileEntityType.FoodPlatter]:
+                             TileEntityType.FoodPlatter,
+                             TileEntityType.DeadCellsDisplayJar]:
             entity.attribute["item"] = __LoadItem4TileEntity(f)
         elif entity_type == TileEntityType.LogicSensor:
             entity.attribute["logiccheck"] = read_uint8(f)
@@ -707,16 +760,38 @@ def __LoadTileEntity(f:io.BufferedReader, tile_entity_verbose) -> list[TileEntit
         elif entity_type == TileEntityType.DisplayDoll:
             item_bitmask = read_uint8(f)
             dye_bitmask = read_uint8(f)
-            items:list[Item] = [Item() for _ in range(8)]
-            dyes:list[Item] = [Item() for _ in range(8)]
-            for idx in range(8):
-                if item_bitmask & (1 << idx):
+
+            if wld.version >= 307:
+                pose = read_uint8(f)
+            
+            extraslots_bitmask = read_uint8(f) if wld.version >= 308 else 0
+
+            v311:bool = False
+            if wld.version == 311:
+                v311 = bool(extraslots_bitmask & (1 << 1))
+                extraslots_bitmask &= 0b11111101
+            
+            maxslots = 9 if wld.version >= 308 else 8
+
+            items:list[Item] = [Item() for _ in range(9)]
+            dyes:list[Item] = [Item() for _ in range(9)]
+            hand:Item = Item()
+            for idx in range(maxslots):
+                hasitem = bool(item_bitmask & (1 << idx)) if idx < 8 else bool(extraslots_bitmask & (1 << 1))
+                if hasitem:
                     items[idx] = __LoadItem4TileEntity(f)
-            for idx in range(8):
-                if dye_bitmask & (1 << idx):
+            for idx in range(maxslots):
+                hasdye = bool(dye_bitmask & (1 << idx)) if idx < 8 else bool(extraslots_bitmask & (1 << 2))
+                if hasdye:
                     dyes[idx] = __LoadItem4TileEntity(f)
+            if extraslots_bitmask & (1 << 0):
+                hand = __LoadItem4TileEntity(f)
             entity.attribute["items"] = items
             entity.attribute["dyes"] = dyes
+            entity.attribute["hand"] = hand
+            entity.attribute["pose"] = pose
+            if v311: #WTF
+                items[8] = __LoadItem4TileEntity(f)
         elif entity_type == TileEntityType.HatRack:
             slots_bitmask = read_uint8(f)
             items:list[Item] = [Item() for _ in range(2)]
@@ -731,6 +806,9 @@ def __LoadTileEntity(f:io.BufferedReader, tile_entity_verbose) -> list[TileEntit
             entity.attribute["dyes"] = dyes
         elif entity_type == TileEntityType.TeleportationPylon:
             pass
+        elif entity_type in [TileEntityType.CritterAnchor,
+                             TileEntityType.KiteAnchor]:
+            entity.attribute["netid"] = read_int16(f)
         else:
             raise WorldLoadError("Unknown TileEntity Type.")
         ret_entities.append(entity)

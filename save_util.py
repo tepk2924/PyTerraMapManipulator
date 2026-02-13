@@ -62,11 +62,9 @@ def save_world(wld:"TerrariaWorld",
         __SaveFooter(wld, f)
         __UpdateSectionPointers(wld, f, sectionpointers)
 
-#TODO: maybe this should be updated upon 1.4.5?
 def __getsectioncount(wld:"TerrariaWorld"):
     return 11 if wld.version >= 220 else 10
 
-#TODO: maybe this should be updated upon 1.4.5?
 def __SaveSectionHeader(wld:"TerrariaWorld", f:io.BufferedWriter, tileframeimportant) -> int:
     write_uint32(f, wld.version)
 
@@ -147,6 +145,7 @@ def __SaveHeaderFlags(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
         if wld.version >= 249: write_boolean(f, wld.remixworld)
         if wld.version >= 266: write_boolean(f, wld.notrapworld)
         if wld.version >= 266: write_boolean(f, wld.zenithworld)
+        if wld.version >= 302: write_boolean(f, wld.skyblockworld)
     elif wld.version == 208:
         write_boolean(f, wld.gamemode == 2)
     elif wld.version == 112:
@@ -156,6 +155,8 @@ def __SaveHeaderFlags(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
 
     if wld.version >= 141:
         write_int64(f, wld.creationtime)
+    if wld.version >= 284:
+        write_int64(f, wld.lastplayed)
     
     write_uint8(f, wld.moontype)
     write_int32(f, wld.treeX0)
@@ -277,6 +278,12 @@ def __SaveHeaderFlags(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
     for i in range(number_of_mobs):
         write_int32(f, wld.killedmobs[i])
     
+    if wld.version >= 289:
+        claimablebannercount = len(wld.claimablebanners)
+        write_int16(f, claimablebannercount)
+        for banner in wld.claimablebanners:
+            write_int16(f, banner)
+
     if wld.version < 128: return f.tell()
 
     if wld.version >= 140:
@@ -409,6 +416,36 @@ def __SaveHeaderFlags(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
     if wld.version >= 264:
         write_boolean(f, wld.fastforwardtimetodusk)
         write_uint8(f, wld.moondialcooldown)
+
+    if wld.version >= 287:
+        write_boolean(f, wld.forcehalloweenforever)
+        write_boolean(f, wld.forcexmasforever)
+    
+    if wld.version >= 288:
+        write_boolean(f, wld.vampireseed)
+    
+    if wld.version >= 296:
+        write_boolean(f, wld.infectedseed)
+    
+    if wld.version >= 291:
+        write_int32(f, wld.tempmeteorshowercount)
+        write_int32(f, wld.tempcoinrain)
+    
+    if wld.version >= 297:
+        write_boolean(f, wld.teambasedspawnseed)
+        write_uint8(f, len(wld.teamspawns))
+        for (x, y) in wld.teamspawns:
+            write_int16(f, x)
+            write_int16(f, y)
+    
+    if wld.version >= 304:
+        write_boolean(f, wld.dualdungeonseed)
+    
+    if 299 <= wld.version < 313:
+        write_boolean(f, False)
+    
+    if wld.version >= 299:
+        write_string(f, wld.worldmanifestdata)
     
     return f.tell()
 
@@ -629,14 +666,18 @@ def __serializeTilaData(wld:"TerrariaWorld",
 def __SaveChests(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
     count = len(wld.chests)
     write_int16(f, count)
-    MAXITEMS = 40
-    write_int16(f, MAXITEMS)
+    MAXITEMS_LAGACY = 40
+    if wld.version < 294:
+        write_int16(f, MAXITEMS_LAGACY)
 
     for chest in wld.chests:
+        item_count = chest.maxitems if wld.version >= 294 else MAXITEMS_LAGACY
         write_int32(f, chest.X)
         write_int32(f, chest.Y)
         write_string(f, chest.name)
-        for slot in range(MAXITEMS):
+        if wld.version >= 294:
+            write_int32(f, chest.maxitems) #always 40
+        for slot in range(item_count):
             item:Item = chest.items[slot]
             stacksize = item.stacksize
             write_int16(f, stacksize)
@@ -680,8 +721,9 @@ def __SaveTileEntity(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
         if entity_type == TileEntityType.TrainingDummy:
             write_int16(f, attribute["npc"])
         elif entity_type in [TileEntityType.ItemFrame,
-                                TileEntityType.WeaponRack,
-                                TileEntityType.FoodPlatter]:
+                             TileEntityType.WeaponRack,
+                             TileEntityType.FoodPlatter,
+                             TileEntityType.DeadCellsDisplayJar]:
             __SaveItem4TileEntity(f, attribute["item"])
         elif entity_type == TileEntityType.LogicSensor:
             write_uint8(f, attribute["logiccheck"])
@@ -689,6 +731,7 @@ def __SaveTileEntity(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
         elif entity_type == TileEntityType.DisplayDoll:
             item_bitmask = 0
             dye_bitmask = 0
+            extraslots_bitmask = 0
             items:list[Item] = attribute["items"]
             dyes:list[Item] = attribute["dyes"]
             for idx in range(8):
@@ -699,12 +742,30 @@ def __SaveTileEntity(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
                     dye_bitmask |= (1 << idx)
             write_uint8(f, item_bitmask)
             write_uint8(f, dye_bitmask)
-            for idx in range(8):
-                if item_bitmask & (1 << idx):
+
+            if wld.version >= 307:
+                write_uint8(f, attribute["pose"])
+            if wld.version >= 308:
+                hand_item:Item = attribute["hand"]
+                if not hand_item.is_empty():
+                    extraslots_bitmask |= (1 << 0)
+                if not items[8].is_empty():
+                    extraslots_bitmask |= (1 << 1)
+                if not dyes[8].is_empty():
+                    extraslots_bitmask |= (1 << 2)
+                write_uint8(f, extraslots_bitmask)
+            
+            maxslots = 9 if wld.version >= 308 else 8
+
+            for idx in range(maxslots):
+                if not items[idx].is_empty():
                     __SaveItem4TileEntity(f, items[idx])
-            for idx in range(8):
-                if dye_bitmask & (1 << idx):
+            for idx in range(maxslots):
+                if not dyes[idx].is_empty():
                     __SaveItem4TileEntity(f, dyes[idx])
+            
+            if wld.version >= 308 and not hand_item.is_empty():
+                __SaveItem4TileEntity(f, hand_item)
         elif entity_type == TileEntityType.HatRack:
             slots_bitmask = 0
             items:list[Item] = attribute["items"]
@@ -724,6 +785,9 @@ def __SaveTileEntity(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
                     __SaveItem4TileEntity(f, dyes[idx])
         elif entity_type == TileEntityType.TeleportationPylon:
             pass
+        elif entity_type in [TileEntityType.CritterAnchor,
+                             TileEntityType.KiteAnchor]:
+            write_int16(f, attribute["netid"])
         else:
             raise WorldSaveError("Unknown TileEntity Type.")
 
