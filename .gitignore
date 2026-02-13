@@ -1,4 +1,5 @@
 *.wld
+*.TEdit
 .py
 __pycache__
 *.txt

@@ -28,7 +28,7 @@ class TerrariaWorld:
         self.tiles:Tiles = Tiles(self.tileswide, self.tileshigh)
         self.chests:list[Chest] = []
         self.signs:list[Sign] = []
-        self.pressure_plates:list[PressurePlate] = []
+        self.weighted_pressure_plates:list[PressurePlate] = []
         self.tile_entities:list[TileEntity] = []
         self.__initializeotherdata()
 
@@ -57,7 +57,6 @@ class TerrariaWorld:
         self.bestiary_data = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         self.creative_power_data = b'\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00\x00\x01\t\x00\x00\x01\n\x00\x00\x01\x0c\x00\x00\x00\x00\x00\x01\r\x00\x00\x00'
 
-    #TODO: SHOULE BE UPDATED UPON 1.4.5 ARRIVES
     def __HeaderFlags_init(self,
                            world_size:str):
         self.title:str = None
@@ -336,3 +335,15 @@ class TerrariaWorld:
                                        posY=row)
         item_frame_entity.attribute["item"] = item
         self.tile_entities.append(item_frame_entity)
+    
+    def place_logic_player_above(self,
+                                 row:int,
+                                 col:int):
+        self.place_sprite(row, col, TileID.LogicSensor, 1, 1, 0, 36)
+        sensor_entity = TileEntity(type=TileEntityType.LogicSensor,
+                                   entity_id=len(self.tile_entities),
+                                   posX=col,
+                                   posY=row)
+        sensor_entity.attribute['logiccheck'] = 3
+        sensor_entity.attribute['on'] = False
+        self.tile_entities.append(sensor_entity)

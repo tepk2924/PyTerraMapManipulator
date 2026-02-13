@@ -90,7 +90,7 @@ def load_world(wld:"TerrariaWorld",
         
         if wld.version >= 170:
             #.wld file saves weighted pressure plates that were being stepped on while player exiting the world. Interesting.
-            wld.pressure_plates = __LoadPressurePlate(f)
+            wld.weighted_pressure_plates = __LoadWeightedPressurePlate(f)
             if f.tell() != section_ptrs[7]:
                 raise WorldLoadError("Unexpected Position: Invalid Weighted Pressure Plate Section")
         
@@ -824,7 +824,7 @@ def __LoadItem4TileEntity(f) -> Item:
     stacksize = read_int16(f)
     return Item(netid=netid, prefix=prefix, stacksize=stacksize)
 
-def __LoadPressurePlate(f) -> list[PressurePlate]:
+def __LoadWeightedPressurePlate(f) -> list[PressurePlate]:
     count = read_int32(f)
     ret = []
     for counter in range(count):

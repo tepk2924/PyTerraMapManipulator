@@ -119,8 +119,7 @@ def __SaveHeaderFlags(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
             seed = int(wld.seed)
             write_int32(f, seed)
         else:
-            seed = int(wld.seed)
-            write_string(f, str(seed))
+            write_string(f, wld.seed)
         write_uint64(f, wld.worldgenversion)
     
     if wld.version >= 181:
@@ -495,7 +494,8 @@ def __SaveTiles(wld:"TerrariaWorld",
             try:
                 for idx in range(headerindex, dataindex):
                     write_uint8(f, tiledata[idx])
-            except struct.error:
+            except struct.error as e:
+                print(e)
                 print(tiledata)
                 exit(1)
             y += 1
@@ -799,9 +799,9 @@ def __SaveItem4TileEntity(f:io.BufferedWriter, item:Item):
     write_int16(f, item.stacksize)
 
 def __SavePressurePlate(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
-    count = len(wld.pressure_plates)
+    count = len(wld.weighted_pressure_plates)
     write_int32(f, count)
-    for plate in wld.pressure_plates:
+    for plate in wld.weighted_pressure_plates:
         write_int32(f, plate.posX)
         write_int32(f, plate.posY)
     
