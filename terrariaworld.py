@@ -336,14 +336,33 @@ class TerrariaWorld:
         item_frame_entity.attribute["item"] = item
         self.tile_entities.append(item_frame_entity)
     
-    def place_logic_player_above(self,
-                                 row:int,
-                                 col:int):
-        self.place_sprite(row, col, TileID.LogicSensor, 1, 1, 0, 36)
+    def place_logic_sensor(self,
+                           row:int,
+                           col:int,
+                           type:str | int,
+                           on:bool = False):
+        if isinstance(type, str):
+            if type == "day":
+                type = 1
+            elif type == "night":
+                type = 2
+            elif type == "player_above":
+                type = 3
+            else:
+                raise ValueError("The type must be one of the following : day | night | player_above")
+        elif isinstance(type, int):
+            if type <= 0 or 4 <= type:
+                raise ValueError("The type must be one of the following : 1 | 2 | 3")
+        if type == 1:
+            self.place_sprite(row, col, TileID.LogicSensor, 1, 1, 18, 0)
+        elif type == 2:
+            self.place_sprite(row, col, TileID.LogicSensor, 1, 1, 0, 18)
+        else:
+            self.place_sprite(row, col, TileID.LogicSensor, 1, 1, 0, 36)
         sensor_entity = TileEntity(type=TileEntityType.LogicSensor,
                                    entity_id=len(self.tile_entities),
                                    posX=col,
                                    posY=row)
-        sensor_entity.attribute['logiccheck'] = 3
-        sensor_entity.attribute['on'] = False
+        sensor_entity.attribute["logiccheck"] = type
+        sensor_entity.attribute['on'] = on
         self.tile_entities.append(sensor_entity)
