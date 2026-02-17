@@ -100,8 +100,11 @@ def main():
         world.tiles.tileinfos[r + 5, c, Channel.INVISIBLEBLOCK] = 1
         world.tiles.tileinfos[r:r + 6, c, Channel.WIREBLUE] = 1
 
-    #7. All Chest contains Gas Trap
+    #7. All Chest contains Gas Trap & Remove Dead Man's Sweater
     for chest in world.chests:
+        for idx in range(40):
+            if chest.items[idx].netid == ItemID.DeadMansSweater:
+                chest.items[idx] = Item(stacksize=0, netid=ItemID.NoItem)
         chest.items[39] = Item(stacksize=1, netid=ItemID.GasTrap)
 
     #8. Surface Mines
@@ -156,17 +159,23 @@ def main():
         world.tiles.tileinfos[r, c, Channel.INVISIBLEBLOCK] = 1
 
     #11. Boulders rain down every night
-    world.time = 13652.0
-    boulder_cnt = 50
+    world.time = 13500.0
+    boulder_cnt = 250
+    base_H = 20
     start_c = int(world.spawnX) - 3*boulder_cnt//2
+    if start_c < 0:
+        start_c = 0
+    over = start_c + 3*boulder_cnt - (W - 1)
+    if over > 0:
+        start_c -= over
     for idx in range(boulder_cnt):
-        world.place_sprite(50, start_c + 3*idx, TileID.BoulderStatue, 3, 2)
-    world.tiles.tileinfos[49, start_c:start_c + 3*boulder_cnt, Channel.TILETYPE] = TileID.Stone
-    world.tiles.tileinfos[49:53, start_c:start_c + 3*boulder_cnt, Channel.INVISIBLEBLOCK] = 1
-    world.place_logic_sensor(48, start_c, "night")
-    world.tiles.tileinfos[48, start_c, Channel.INVISIBLEBLOCK] = 1
-    world.tiles.tileinfos[50, start_c:start_c + 3*boulder_cnt, Channel.WIREYELLOW] = 1
-    world.tiles.tileinfos[48:50, start_c, Channel.WIREYELLOW] = 1
+        world.place_sprite(base_H + 2, start_c + 3*idx, TileID.BoulderStatue, 3, 2)
+    world.tiles.tileinfos[base_H + 1, start_c:start_c + 3*boulder_cnt, Channel.TILETYPE] = TileID.Stone
+    world.tiles.tileinfos[base_H + 1:base_H + 5, start_c:start_c + 3*boulder_cnt, Channel.INVISIBLEBLOCK] = 1
+    world.place_logic_sensor(base_H, start_c, "night")
+    world.tiles.tileinfos[base_H, start_c, Channel.INVISIBLEBLOCK] = 1
+    world.tiles.tileinfos[base_H + 2, start_c:start_c + 3*boulder_cnt, Channel.WIREYELLOW] = 1
+    world.tiles.tileinfos[base_H:base_H + 2, start_c, Channel.WIREYELLOW] = 1
     
     world.tiles.exit_editmode()
 
