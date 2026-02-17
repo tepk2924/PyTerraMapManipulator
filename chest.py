@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enumeration import ItemID, PrefixID
 
 class Chest:

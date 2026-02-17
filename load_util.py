@@ -5,6 +5,7 @@ from fileIOutils import *
 from tiles import Tiles
 from chest import Chest, Item
 from sign import Sign
+from npc import NPC
 from pressureplate import PressurePlate
 from tileentity import TileEntity
 from enumeration import BrickStyle, Liquid, Channel, GameMode, TileID, TileEntityType, ItemID
@@ -16,7 +17,6 @@ if TYPE_CHECKING:
 class WorldLoadError(Exception):
     pass
 
-#TODO: maybe this should be updated upon 1.4.5?
 def load_world(wld:"TerrariaWorld",
                file_path=None,
                chest_verbose=False,
@@ -71,22 +71,22 @@ def load_world(wld:"TerrariaWorld",
             if f.tell() != section_ptrs[4]:
                 raise WorldLoadError("Unexpected Position: Invalid Sign Data")
         
-        if wld.version >= 140:
-            NPCMobs_data_len = section_ptrs[5] - section_ptrs[4]
-            wld.NPCMobs_data = f.read(NPCMobs_data_len)
-            if f.tell() != section_ptrs[5]:
-                raise WorldLoadError("Unexpected Position: Invalid Mob and NPC Data")
-            if skip_tile_entity_data:
-                f.seek(section_ptrs[6])
+        data = __LoadNPCsData(wld, f)
+        if "shimmeredtownNPCs" in data:
+            wld.shimmeredtownnpcs = data["shimmeredtownNPCs"]
+        wld.npcs = data["NPCs"]
+        if "Mobs" in data:
+            wld.mobs = data["Mobs"]
+        if f.tell() != section_ptrs[5]:
+            raise WorldLoadError("Unexpected Position: Invalid Mob and NPC Data")
+
+        if wld.version >= 116:
+            if wld.version < 122:
+                raise NotImplementedError
             else:
                 wld.tile_entities = __LoadTileEntity(wld, f, tile_entity_verbose)
-                if f.tell() != section_ptrs[6]:
-                    raise WorldLoadError("Unexpected Position: Invalid Tile Entities Section")
-        else:
-            NPCMobs_data_len = section_ptrs[5] - section_ptrs[4]
-            wld.NPCMobs_data = f.read(NPCMobs_data_len)
-            if f.tell() != section_ptrs[5]:
-                raise WorldLoadError("Unexpected Position: Invalid NPC Data")
+            if f.tell() != section_ptrs[6]:
+                raise WorldLoadError("Unexpected Position: Invalid Tile Entities Section")
         
         if wld.version >= 170:
             #.wld file saves weighted pressure plates that were being stepped on while player exiting the world. Interesting.
@@ -194,7 +194,7 @@ def __LoadHeaderFlags(wld:"TerrariaWorld", f:io.BufferedReader):
         wld.gamemode = 0
 
     wld.creationtime = read_int64(f) if wld.version >= 141 else int(datetime.datetime.now().timestamp())
-    wld.lastplayed = read_int64(f) if wld.version >= 284 else int(datetime.datetime.now())
+    wld.lastplayed = read_int64(f) if wld.version >= 284 else int(datetime.datetime.now().timestamp())
 
     wld.moontype = read_uint8(f)
     wld.treeX[0] = read_int32(f)
@@ -817,6 +817,52 @@ def __LoadTileEntity(wld: "TerrariaWorld", f:io.BufferedReader, tile_entity_verb
         for entity in ret_entities:
             print(entity)
     return ret_entities
+
+def __LoadNPCsData(wld:"TerrariaWorld", f:io.BufferedReader) -> dict:
+    ret = {}
+    if wld.version >= 268:
+        ret["shimmeredtownNPCs"] = []
+        numshimmeredNPCs = read_int32(f)
+        for _ in range(numshimmeredNPCs):
+            ret["shimmeredtownNPCs"].append(read_int32(f))
+
+    ret["NPCs"] = []
+    flag = read_boolean(f)
+    while flag:
+        npc = NPC()
+        if wld.version >= 190:
+            npc.spriteid = read_int32(f)
+        else:
+            npc.name = read_string(f)
+        npc.displayname = read_string(f)
+        npc.positionX = read_single(f)
+        npc.positionY = read_single(f)
+        npc.ishomless = read_boolean(f)
+        npc.homeX = read_int32(f)
+        npc.homeY = read_int32(f)
+        if wld.version >= 213:
+            bitmask = read_uint8(f)
+            if bitmask & (1 << 0):
+                npc.townnpcvariationindex = read_int32(f)
+        if wld.version >= 315:
+            npc.homelessdespawn = read_boolean(f)
+        ret["NPCs"].append(npc)
+        flag = read_boolean(f)
+    
+    if wld.version >= 140:
+        ret["Mobs"] = []
+        flag = read_boolean(f)
+        while flag:
+            npc = NPC()
+            if wld.version >= 190:
+                npc.spriteid = read_int32(f)
+            else:
+                npc.name = read_string(f)
+            npc.positionX = read_single(f)
+            npc.positionY = read_single(f)
+            ret["Mobs"].append(npc)
+            flag = read_boolean(f)
+    return ret
 
 def __LoadItem4TileEntity(f) -> Item:
     netid = read_int16(f)

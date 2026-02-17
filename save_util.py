@@ -35,14 +35,10 @@ def save_world(wld:"TerrariaWorld",
         sectionpointers[2] = __SaveTiles(wld, f, wld.tileswide, wld.tileshigh)
         sectionpointers[3] = __SaveChests(wld, f)
         sectionpointers[4] = __SaveSigns(wld, f)
+        sectionpointers[5] = __SaveNPCs(wld, f)
 
         if wld.version >= 140:
-            f.write(wld.NPCMobs_data)
-            sectionpointers[5] = f.tell()
             sectionpointers[6] = __SaveTileEntity(wld, f)
-        else:
-            f.write(wld.NPCMobs_data)
-            sectionpointers[5] = f.tell()
         
         if wld.version >= 170:
             sectionpointers[7] = __SavePressurePlate(wld, f)
@@ -701,6 +697,51 @@ def __SaveSigns(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
         write_int32(f, x)
         write_int32(f, y)
     
+    return f.tell()
+
+def __SaveNPCs(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:
+    if wld.version >= 268:
+        write_int32(f, len(wld.shimmeredtownnpcs))
+        for shimtownnpc in wld.shimmeredtownnpcs:
+            write_int32(f, shimtownnpc)
+    for npc in wld.npcs:
+        write_boolean(f, True)
+        if wld.version >= 190:
+            if npc.spriteid is None:
+                raise WorldSaveError("NPC save failure")
+            write_int32(f, npc.spriteid)
+        else:
+            if npc.name is None:
+                raise WorldSaveError("NPC save failure")
+            write_string(f, npc.name)
+        write_string(f, npc.displayname)
+        write_single(f, npc.positionX)
+        write_single(f, npc.positionY)
+        write_boolean(f, npc.ishomless)
+        write_int32(f, npc.homeX)
+        write_int32(f, npc.homeY)
+        if wld.version >= 213:
+            bitmask = 1
+            write_uint8(f, bitmask)
+            if bitmask & (1 << 0):
+                write_int32(f, npc.townnpcvariationindex)
+        if wld.version >= 315:
+            write_boolean(f, npc.homelessdespawn)
+    write_boolean(f, False)
+    if wld.version >= 140:
+        for mob in wld.mobs:
+            write_boolean(f, True)
+            if wld.version >= 190:
+                if mob.spriteid is None:
+                    raise WorldSaveError("NPC save failure")
+                write_int32(f, mob.spriteid)
+            else:
+                if mob.name is None:
+                    raise WorldSaveError("NPC save failure")
+                write_string(f, mob.name)
+            write_single(f, mob.positionX)
+            write_single(f, mob.positionY)
+        write_boolean(f, False)
     return f.tell()
 
 def __SaveTileEntity(wld:"TerrariaWorld", f:io.BufferedWriter) -> int:

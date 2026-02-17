@@ -3,4 +3,5 @@
 .py
 __pycache__
 *.txt
+!requirements.txt
 .vscode
