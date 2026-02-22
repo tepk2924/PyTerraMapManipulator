@@ -61,7 +61,7 @@ class TerrariaWorld:
         self.creative_power_data = b'\x00'
 
     def __HeaderFlags_init(self,
-                           world_size:str):
+                           world_size:str | tuple[int, int]):
         self.title:str = None
         self.seed:str = str(random.randint(0, (1 << 31) - 1)) #random
         self.worldgenversion:int = 1198295875585 #taken
@@ -318,11 +318,11 @@ class TerrariaWorld:
                 self.tiles.tileinfos[row + r, col + c, Channel.FRAMEY] = 18*r + frame_Y_shift
 
     def place_chest_group1(self,
-                    row:int,
-                    col:int,
-                    item_list:list[Item],
-                    frame_X_shift:int=0,
-                    frame_Y_shift:int=0):
+                           row:int,
+                           col:int,
+                           item_list:list[Item],
+                           frame_X_shift:int=0,
+                           frame_Y_shift:int=0):
         self.place_sprite(row, col, TileID.Containers, 2, 2, frame_X_shift, frame_Y_shift)
         chest = Chest(col, row, "")
         if len(item_list) > 40:

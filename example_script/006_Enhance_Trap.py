@@ -176,6 +176,9 @@ def main():
     world.tiles.tileinfos[base_H, start_c, Channel.INVISIBLEBLOCK] = 1
     world.tiles.tileinfos[base_H + 2, start_c:start_c + 3*boulder_cnt, Channel.WIREYELLOW] = 1
     world.tiles.tileinfos[base_H:base_H + 2, start_c, Channel.WIREYELLOW] = 1
+
+    #12. All normal boulders are converted to bouncy boulders.
+    world.tiles.tileinfos[world.tiles.tileinfos[:, :, Channel.TILETYPE] == TileID.Boulder, Channel.TILETYPE] = TileID.BouncyBoulder
     
     world.tiles.exit_editmode()
 
