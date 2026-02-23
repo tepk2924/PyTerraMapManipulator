@@ -5,7 +5,7 @@ import sys
 import multiprocessing
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
-from enumeration import ItemID, TileID, Channel, BrickStyle, WallID, Liquid, GameMode
+from enumeration import ItemID, TileID, Channel, BrickStyle, WallID, Liquid
 from chest import Item
 
 def main():

@@ -3,18 +3,13 @@ import numpy as np
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from terrariaworld import TerrariaWorld
-from enumeration import WallID, Channel, Paint
-from draw import vec2, unit, get_boundary, line_seg_mask
-
-def draw_line_seg(arr:np.ndarray,
-                  pt1:vec2,
-                  pt2:vec2) -> None:
-    arr[*line_seg_mask(pt1, pt2)] = 1
+import importlib
+patternlib = importlib.import_module("004#_PatternLib")
+from draw import vec2, unit, get_boundary
 
 SIZE = 901 #must be odd
 
-result = np.zeros((SIZE, SIZE))
+result = np.zeros((SIZE, SIZE), dtype=np.uint8)
 
 arange_size = np.arange(SIZE)
 r = np.tile(np.expand_dims(arange_size, axis=1), (1, SIZE))
@@ -66,12 +61,12 @@ for angle in np.linspace(0, 2*np.pi, 24, False):
     pt2 = center_vec + 15*unit(angle + np.pi/2)
     pt3 = center_vec + 15*unit(angle + np.pi)
     pt4 = center_vec + 15*unit(angle + 3*np.pi/2)
-    draw_line_seg(result, pt1, pt2)
-    draw_line_seg(result, pt2, pt3)
-    draw_line_seg(result, pt3, pt4)
-    draw_line_seg(result, pt4, pt1)
-    draw_line_seg(result, pt1, pt3)
-    draw_line_seg(result, pt2, pt4)
+    patternlib.draw_line_seg(result, pt1, pt2)
+    patternlib.draw_line_seg(result, pt2, pt3)
+    patternlib.draw_line_seg(result, pt3, pt4)
+    patternlib.draw_line_seg(result, pt4, pt1)
+    patternlib.draw_line_seg(result, pt1, pt3)
+    patternlib.draw_line_seg(result, pt2, pt4)
 
 for idx in range(0, 75, 15):
     result += np.where(np.abs(x) + np.abs(y) == idx, 1, 0)
@@ -79,16 +74,16 @@ for idx in range(0, 75, 15):
 O = vec2(SIZE//2, SIZE//2)
 for angle in np.linspace(0, 2*np.pi, 12, False):
     result += np.where(((x - 170*np.cos(angle))**2 + (y - 170*np.sin(angle))**2 <= 40**2) & ((x - 181*np.cos(angle))**2 + (y - 181*np.sin(angle))**2 >= 30**2), 1, 0)
-    draw_line_seg(result,
+    patternlib.draw_line_seg(result,
                   O,
                   O + 270*unit(angle))
-    draw_line_seg(result,
+    patternlib.draw_line_seg(result,
                   O + 150*unit(angle) + 10*unit(angle + np.pi/2),
                   O + 270*unit(angle) + 10*unit(angle + np.pi/2))
-    draw_line_seg(result,
+    patternlib.draw_line_seg(result,
                   O + 150*unit(angle) + 10*unit(angle - np.pi/2),
                   O + 270*unit(angle) + 10*unit(angle - np.pi/2))
-    draw_line_seg(result,
+    patternlib.draw_line_seg(result,
                   O + 180*unit(angle) + 30*unit(angle + np.pi/2),
                   O + 180*unit(angle) + 30*unit(angle - np.pi/2))
 
@@ -102,28 +97,13 @@ pts = [vec2(center_R, center_C) + 120*unit(angle) for angle in np.linspace(0, 2*
 for _ in range(10):
     new_pts = []
     for idx in range(8):
-        draw_line_seg(result, pts[idx], pts[(idx + 1)%8])
+        patternlib.draw_line_seg(result, pts[idx], pts[(idx + 1)%8])
         new_pts.append(0.8*pts[idx] + 0.2*pts[(idx + 1)%8])
     pts = new_pts
 for idx in [1, 3]:
     for jdx in range(8):
-        draw_line_seg(result, pts[jdx], pts[(jdx + idx)%8])
+        patternlib.draw_line_seg(result, pts[jdx], pts[(jdx + idx)%8])
 result += np.where((x - center_X)**2 + (y - center_Y)**2 <= 20**2, 1, 0)
 
-result = np.where(result >= 1, 1, 0)
-
 color_scheme = np.int32((5*x + 3*y)/100)%12 + 13
-color_scheme = color_scheme*result
-color_scheme = np.where(color_scheme == 0, Paint.NEGATIVE, color_scheme)
-
-MARGIN = 50
-world = TerrariaWorld(world_size = (MARGIN + SIZE + MARGIN, MARGIN + SIZE + MARGIN))
-world.tiles.enter_editmode()
-world.spawnX = MARGIN + SIZE//2
-world.spawnY = MARGIN + SIZE//2
-
-world.tiles.tileinfos[MARGIN:MARGIN + SIZE, MARGIN:MARGIN + SIZE, Channel.WALL] = WallID.DiamondGemspark
-world.tiles.tileinfos[MARGIN:MARGIN + SIZE, MARGIN:MARGIN + SIZE, Channel.WALLCOLOR] = color_scheme
-world.tiles.exit_editmode()
-
-world.save_world("magic_circle")
+patternlib.export_pattern(result, color_scheme, "magic_circle")

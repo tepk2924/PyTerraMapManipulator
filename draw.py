@@ -8,9 +8,21 @@ class vec2:
     
     def __add__(self, other):
         return vec2(self.r + other.r, self.c + other.c)
+    
+    def __sub__(self, other):
+        return vec2(self.r - other.r, self.c - other.c)
+
+    def __mul__(self, other):
+        if isinstance(other, float | int):
+            return vec2(self.r*other, self.c*other)
+        else:
+            raise ValueError
 
     def __rmul__(self, other):
-        return vec2(self.r*other, self.c*other)
+        if isinstance(other, float | int):
+            return vec2(self.r*other, self.c*other)
+        else:
+            raise ValueError
     
     def __round__(self):
         return vec2(round(self.r), round(self.c))

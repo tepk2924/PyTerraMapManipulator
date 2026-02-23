@@ -3,19 +3,13 @@ import numpy as np
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from terrariaworld import TerrariaWorld
-from enumeration import WallID, Channel, Paint
-from draw import vec2, unit, line_seg_mask
-
-def draw_line_seg(arr:np.ndarray,
-                  pt1:vec2,
-                  pt2:vec2) -> None:
-    rows, cols = arr.shape
-    arr[line_seg_mask(rows, cols, pt1, pt2)] = 1
+import importlib
+patternlib = importlib.import_module("004#_PatternLib")
+from draw import vec2, unit
 
 SIZE = 901 #must be odd
 
-result = np.zeros((SIZE, SIZE))
+result = np.zeros((SIZE, SIZE), dtype=np.uint8)
 
 arange_size = np.arange(SIZE)
 r = np.tile(np.expand_dims(arange_size, axis=1), (1, SIZE))
@@ -39,10 +33,10 @@ O = vec2(SIZE//2, SIZE//2)
 arr = [273, 276, 284, 288, 292, 296, 300, 308, 311]
 for a in arr:
     for angle in np.linspace(0, 2*np.pi, 5, False):
-        draw_line_seg(result,
+        patternlib.draw_line_seg(result,
                       O + a*unit(angle),
                       O + a*unit(angle + 2*np.pi/5))
-        draw_line_seg(result,
+        patternlib.draw_line_seg(result,
                       O + a*unit(angle),
                       O + a*unit(angle + 4*np.pi/5))
 
@@ -82,10 +76,10 @@ for angle in np.linspace(0, 2*np.pi, 5, False):
 
 for angle1 in np.linspace(0, 2*np.pi, 5, False):
     for angle2 in np.linspace(0, 2*np.pi, 10, False):
-        draw_line_seg(result,
+        patternlib.draw_line_seg(result,
                       O + 292*unit(angle1) + 103*unit(angle2),
                       O + 292*unit(angle1) + 103*unit(angle2 + 4*np.pi/5))
-        draw_line_seg(result,
+        patternlib.draw_line_seg(result,
                       O + 292*unit(angle1) + 103*unit(angle2 + np.pi/10),
                       O + 292*unit(angle1) + 103*unit(angle2 + 9*np.pi/10))
 
@@ -114,20 +108,5 @@ for angle in np.linspace(0, 2*np.pi, 5, False):
     result += np.where((x - 210*np.cos(angle + np.pi/5))**2 + (y - 210*np.sin(angle + np.pi/5))**2 <= 48**2, 1, 0)
     result = np.where((x - 210*np.cos(angle + np.pi/5))**2 + (y - 210*np.sin(angle + np.pi/5))**2 <= 43**2, 0, result)
 
-result = np.where(result >= 1, 1, 0)
-
 color_scheme = np.int32((5*x + 3*y)/100)%12 + 13
-color_scheme = color_scheme*result
-color_scheme = np.where(color_scheme == 0, Paint.NEGATIVE, color_scheme)
-
-MARGIN = 50
-world = TerrariaWorld(world_size = (MARGIN + SIZE + MARGIN, MARGIN + SIZE + MARGIN))
-world.tiles.enter_editmode()
-world.spawnX = MARGIN + SIZE//2
-world.spawnY = MARGIN + SIZE//2
-
-world.tiles.tileinfos[MARGIN:MARGIN + SIZE, MARGIN:MARGIN + SIZE, Channel.WALL] = WallID.DiamondGemspark
-world.tiles.tileinfos[MARGIN:MARGIN + SIZE, MARGIN:MARGIN + SIZE, Channel.WALLCOLOR] = color_scheme
-world.tiles.exit_editmode()
-
-world.save_world("other_circle_01")
+patternlib.export_pattern(result, color_scheme, "other_pattern_01")
