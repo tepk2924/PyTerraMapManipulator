@@ -2,6 +2,7 @@ import random
 import numpy as np
 import os
 import sys
+import multiprocessing
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from terrariaworld import TerrariaWorld
 from enumeration import ItemID, TileID, Channel, BrickStyle, WallID, Liquid, GameMode
@@ -182,7 +183,7 @@ def main():
     
     world.tiles.exit_editmode()
 
-    world.save_world(save_file_path = output_path)
+    world.save_world(save_file_path = output_path, process_units=multiprocessing.cpu_count())
     input("월드 생성 완료. 프로그램을 닫으려면 엔터 누르기...")
 
 if __name__ == "__main__":

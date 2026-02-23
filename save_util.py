@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+import multiprocessing
 from fileIOutils import *
 from tiles import Tiles
 from chest import Chest, Item
@@ -16,9 +17,9 @@ if TYPE_CHECKING:
 class WorldSaveError(Exception):
     pass
 
-#TODO: maybe this should be updated upon 1.4.5?
 def save_world(wld:"TerrariaWorld",
-               save_file_path:str=None):
+               save_file_path:str=None,
+               process_units:int=1):
     if save_file_path is None:
         save_file_path = input("Saving File Path : ")
     if not save_file_path.endswith(".wld"):
@@ -32,7 +33,10 @@ def save_world(wld:"TerrariaWorld",
     with open(save_file_path, "wb") as f:
         sectionpointers[0] = __SaveSectionHeader(wld, f, wld.tileframeimportant)
         sectionpointers[1] = __SaveHeaderFlags(wld, f)
-        sectionpointers[2] = __SaveTiles(wld, f, wld.tileswide, wld.tileshigh)
+        if process_units == 1:
+            sectionpointers[2] = __SaveTiles(wld, f, wld.tileswide, wld.tileshigh)
+        else:
+            sectionpointers[2] = __SaveTiles_Multiprocess(wld, f, wld.tileswide, wld.tileshigh, process_units)
         sectionpointers[3] = __SaveChests(wld, f)
         sectionpointers[4] = __SaveSigns(wld, f)
         sectionpointers[5] = __SaveNPCs(wld, f)
@@ -461,7 +465,7 @@ def __SaveTiles(wld:"TerrariaWorld",
         y = 0
         while y < maxY:
             tile = wld.tiles.tileinfos[x, y]
-            tiledata, dataindex, headerindex = __serializeTilaData(wld, tile)
+            tiledata, dataindex, headerindex = __serializeTilaData(wld.version, wld.tileframeimportant, tile)
 
             header1 = tiledata[headerindex]
 
@@ -499,12 +503,75 @@ def __SaveTiles(wld:"TerrariaWorld",
     sys.stdout.write(f"saving tile {total_tiles}/{total_tiles} done... [{"="*barlen}]\n")
     return f.tell()
 
-#TODO: maybe this should be updated upon 1.4.5?
-def __serializeTilaData(wld:"TerrariaWorld",
-                        tile:np.ndarray) -> tuple[list[int], int, int]:
-    size = 16 if wld.version >= 269 else 15 if wld.version > 22 else 13
+def __SaveTiles_Multiprocess(wld:"TerrariaWorld",
+                             f:io.BufferedWriter,
+                             maxX:int,
+                             maxY:int,
+                             process_units:int):
+    assert isinstance(process_units, int)
+    assert process_units >= 2
+    wld.tiles.exit_editmode()
+    pool = multiprocessing.Pool(processes=process_units)
+    results = pool.starmap(__Multiprocess_Sub, [(wld.version, wld.tileframeimportant, wld.tiles.
+                                                 tileinfos[int(maxX*idx/process_units):int(maxX*(idx + 1)/process_units), :, :].copy(), idx) for idx in range(process_units)])
+    pool.close()
+    pool.join()
+    for arr in results:
+        for data in arr:
+            write_uint8(f, data)
+    return f.tell()
 
-    dataindex = 4 if wld.version >= 269 else 3
+def __Multiprocess_Sub(version:int,
+                       tileframeimportant:list[bool],
+                       sub_tiles:np.ndarray,
+                       idx:int) -> list[int]:
+    maxX, maxY, _ = sub_tiles.shape
+    total_tiles = maxX*maxY
+    digits = len(str(total_tiles))
+    barlen = 30
+    ret = []
+    for x in range(maxX):
+        progess = int(barlen*x/maxX)
+        print(f"multiprocess unit {idx}: {x*maxY:>{digits}d}/{total_tiles} done... [{"="*progess}{" "*(barlen - progess)}]")
+        y = 0
+        while y < maxY:
+            tile = sub_tiles[x, y]
+            tiledata, dataindex, headerindex = __serializeTilaData(version, tileframeimportant, tile)
+
+            header1 = tiledata[headerindex]
+
+            rle = 0
+            nexty = y + 1
+            remainingy = maxY - y - 1
+            while (remainingy > 0 and all(tile == sub_tiles[x, nexty]) and int(tile[Channel.TILETYPE]) != 520 and int(tile[Channel.TILETYPE]) != 423):
+                rle += 1
+                remainingy -= 1
+                nexty += 1
+            
+            y = y + rle
+
+            if rle > 0:
+                tiledata[dataindex] = rle & 0b1111_1111
+                dataindex += 1
+
+                if rle <= 255:
+                    header1 |= 0b0100_0000
+                else:
+                    header1 |= 0b1000_0000
+                    tiledata[dataindex] = (rle & 0b11111111_00000000) >> 8
+                    dataindex += 1
+            
+            tiledata[headerindex] = header1
+            ret.extend(tiledata[headerindex:dataindex])
+            y += 1
+    return ret
+
+def __serializeTilaData(version:int,
+                        tileframeimportant:list[int],
+                        tile:np.ndarray) -> tuple[list[int], int, int]:
+    size = 16 if version >= 269 else 15 if version > 22 else 13
+
+    dataindex = 4 if version >= 269 else 3
 
     tiledata = [0]*size
 
@@ -545,7 +612,7 @@ def __serializeTilaData(wld:"TerrariaWorld",
             dataindex += 1
             header1 |= 0b0010_0000
 
-        if wld.tileframeimportant[TYPE]:
+        if tileframeimportant[TYPE]:
             tiledata[dataindex] = U & 0xFF
             dataindex += 1
             tiledata[dataindex] = (U & 0xFF00) >> 8
@@ -555,7 +622,7 @@ def __serializeTilaData(wld:"TerrariaWorld",
             tiledata[dataindex] = (V & 0xFF00) >> 8
             dataindex += 1
         
-        if wld.version < 269:
+        if version < 269:
             if TILECOLOR != 0 or FULLBRIGHTBLOCK:
                 color = TILECOLOR
 
@@ -578,11 +645,11 @@ def __serializeTilaData(wld:"TerrariaWorld",
         tiledata[dataindex] = WALL%256
         dataindex += 1
 
-        if wld.version < 269:
+        if version < 269:
             if WALLCOLOR != 0 or FULLBRIGHTWALL:
                 color = WALLCOLOR
 
-                if color == 0 and wld.version < 269 and FULLBRIGHTWALL:
+                if color == 0 and version < 269 and FULLBRIGHTWALL:
                     color = 31
                 
                 header3 |= 0b0001_0000
@@ -596,7 +663,7 @@ def __serializeTilaData(wld:"TerrariaWorld",
                 dataindex += 1
 
     if LIQUIDAMOUNT != 0 and LIQUIDTYPE != Liquid.NONE:
-        if wld.version >= 269 and LIQUIDTYPE == Liquid.SHIMMER:
+        if version >= 269 and LIQUIDTYPE == Liquid.SHIMMER:
             header3 |= 0b1000_0000
             header1 |= 0b0000_1000
         elif LIQUIDTYPE == Liquid.LAVA:
@@ -625,12 +692,12 @@ def __serializeTilaData(wld:"TerrariaWorld",
     if WIREYELLOW:
         header3 |= 0b0010_0000
     
-    if WALL > 255 and wld.version >= 222:
+    if WALL > 255 and version >= 222:
         header3 |= 0b0100_0000
         tiledata[dataindex] = WALL >> 8
         dataindex += 1
     
-    if wld.version >= 269:
+    if version >= 269:
         if INVISIBLEBLOCK:
             header4 |= 0b0000_0010
         if INVISIBLEWALL:

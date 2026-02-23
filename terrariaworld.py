@@ -298,9 +298,14 @@ class TerrariaWorld:
                              skip_tile_entity_data)
 
     def save_world(self,
-                   save_file_path:str=None):
+                   save_file_path:str=None,
+                   process_units:int=1):
+        '''
+        if process_units >= 2, be sure that entire script is wrapped in if __name__ == "__main__" section.
+        '''
         save_util.save_world(self,
-                             save_file_path=save_file_path)
+                             save_file_path=save_file_path,
+                             process_units=process_units)
 
     def place_sprite(self,
                      row:int,
