@@ -763,6 +763,8 @@ def __LoadTileEntity(wld: "TerrariaWorld", f:io.BufferedReader, tile_entity_verb
 
             if wld.version >= 307:
                 pose = read_uint8(f)
+            else:
+                pose = 0
             
             extraslots_bitmask = read_uint8(f) if wld.version >= 308 else 0
 

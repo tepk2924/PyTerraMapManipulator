@@ -510,10 +510,11 @@ def __SaveTiles_Multiprocess(wld:"TerrariaWorld",
                              process_units:int):
     assert isinstance(process_units, int)
     assert process_units >= 2
+    process_unit_digits = len(str(process_units - 1))
     wld.tiles.exit_editmode()
     pool = multiprocessing.Pool(processes=process_units)
     results = pool.starmap(__Multiprocess_Sub, [(wld.version, wld.tileframeimportant, wld.tiles.
-                                                 tileinfos[int(maxX*idx/process_units):int(maxX*(idx + 1)/process_units), :, :].copy(), idx) for idx in range(process_units)])
+                                                 tileinfos[int(maxX*idx/process_units):int(maxX*(idx + 1)/process_units), :, :].copy(), idx, process_unit_digits) for idx in range(process_units)])
     pool.close()
     pool.join()
     for arr in results:
@@ -524,7 +525,8 @@ def __SaveTiles_Multiprocess(wld:"TerrariaWorld",
 def __Multiprocess_Sub(version:int,
                        tileframeimportant:list[bool],
                        sub_tiles:np.ndarray,
-                       idx:int) -> list[int]:
+                       idx:int,
+                       process_unit_digits:int) -> list[int]:
     maxX, maxY, _ = sub_tiles.shape
     total_tiles = maxX*maxY
     digits = len(str(total_tiles))
@@ -532,7 +534,7 @@ def __Multiprocess_Sub(version:int,
     ret = []
     for x in range(maxX):
         progess = int(barlen*x/maxX)
-        print(f"multiprocess unit {idx}: {x*maxY:>{digits}d}/{total_tiles} done... [{"="*progess}{" "*(barlen - progess)}]")
+        print(f"multiprocess unit {idx:>{process_unit_digits}d}: {x*maxY:>{digits}d}/{total_tiles} done... [{"="*progess}{" "*(barlen - progess)}]")
         y = 0
         while y < maxY:
             tile = sub_tiles[x, y]
